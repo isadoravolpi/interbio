@@ -150,6 +150,7 @@ with col1:
         st.success("Curtida registrada com sucesso 💘")
         st.balloons()
         st.toast("Like enviado! Carregando o próximo perfil...", icon="💘")
+        import time
         time.sleep(2)  # pequena pausa para o feedback visual
         del st.session_state.perfil_atual
         st.rerun()
