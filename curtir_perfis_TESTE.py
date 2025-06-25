@@ -34,8 +34,22 @@ if st.session_state.indice_perfil >= len(restantes):
 
 perfil = restantes[st.session_state.indice_perfil]
 perfil_dir = os.path.join(UPLOAD_DIR, perfil)
+
 dados_path = os.path.join(perfil_dir, "dados.csv")
-dados = pd.read_csv(dados_path).iloc[0]
+
+# Verifica se o arquivo dados.csv existe
+if not os.path.exists(dados_path):
+    st.warning(f"Perfil de {perfil} não possui dados.csv. Pulando...")
+    st.session_state.indice_perfil += 1
+    st.experimental_rerun()
+
+# Tenta carregar os dados com proteção
+try:
+    dados = pd.read_csv(dados_path).iloc[0]
+except Exception as e:
+    st.warning(f"Erro ao carregar dados de {perfil}. Pulando...\n{e}")
+    st.session_state.indice_perfil += 1
+    st.experimental_rerun()
 
 # Verifica se o perfil tem os campos obrigatórios
 campos_obrigatorios = ["nome_publico", "descricao", "musicas", "fotos"]
