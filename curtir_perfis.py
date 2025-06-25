@@ -56,6 +56,7 @@ def carregar_dados():
     return df, likes
 
 # --- Interface ---
+st.image("logo_besouro.png", width=400)
 st.title("💘LIKES DA CEÓ")
 
 usuario = st.text_input("Digite seu login privado")
