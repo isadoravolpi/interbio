@@ -2,18 +2,21 @@ import streamlit as st
 import gspread
 import pandas as pd
 import time
-from oauth2client.service_account import ServiceAccountCredentials
 import random
+from google.oauth2.service_account import Credentials
 
-# Autenticação com Google Sheets
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+# Autenticação moderna com Google
+scope = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
 creds_dict = st.secrets["gcp_service_account"]
-creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(creds_dict), scope)
-client = gspread.authorize(creds)
+credentials = Credentials.from_service_account_info(creds_dict, scopes=scope)
+client = gspread.authorize(credentials)
 
 PLANILHA = "TINDER_CEO_PERFIS"
 
-# Tenta abrir a planilha com retry
+# Função com retry para abrir a planilha
 @st.cache_data(ttl=60)
 def carregar_sheet():
     for tentativa in range(3):
@@ -39,23 +42,19 @@ try:
 except gspread.exceptions.WorksheetNotFound:
     likes_ws = sheet.add_worksheet(title="likes", rows="1000", cols="5")
     likes_ws.append_row(["quem_curtiu", "quem_foi_curtido"])
-except Exception as e:
-    st.error(f"Erro ao acessar a aba 'likes': {e}")
-    st.stop()
 
-# Função para converter link do Google Drive em URL direta para <img>
+# Função para visualizar imagem do Drive
 def drive_link_para_visualizacao(link):
     if "id=" in link:
         file_id = link.split("id=")[-1]
-        return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
     elif "export=view&id=" in link:
         file_id = link.split("id=")[-1]
-        return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
-    return link
+    else:
+        return link
+    return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
 
-# Interface
+# Interface principal
 st.title("💘LIKES DA CEÓ")
-
 usuario = st.text_input("Digite seu login privado")
 if not usuario:
     st.stop()
@@ -75,23 +74,22 @@ if "login" not in df.columns:
     st.error("A aba 'perfis' precisa da coluna 'login'.")
     st.stop()
 
-# Remove o próprio perfil
-df = df[df["login"] != usuario]
+df = df[df["login"] != usuario]  # remove o próprio perfil
 
-# Carrega likes
+# Carrega curtidas
 likes_data = likes_ws.get_all_records()
 likes = pd.DataFrame(likes_data) if likes_data else pd.DataFrame(columns=["quem_curtiu", "quem_foi_curtido"])
 likes.columns = likes.columns.str.strip()
 
+# Verifica estrutura da aba de likes
 if not set(["quem_curtiu", "quem_foi_curtido"]).issubset(likes.columns):
     st.error("A aba 'likes' precisa das colunas 'quem_curtiu' e 'quem_foi_curtido'.")
     st.stop()
 
-# Remove perfis já curtidos
+# Filtra perfis ainda não curtidos
 ja_curtiu = likes[likes["quem_curtiu"] == usuario]["quem_foi_curtido"].tolist()
 df_restantes = df[~df["login"].isin(ja_curtiu)]
 
-# Escolhe perfil que ainda não foi curtido
 if "perfil_atual" not in st.session_state:
     if df_restantes.empty:
         st.success("Você já viu todos os perfis disponíveis! Agora é só esperar os matches 🥰")
@@ -104,7 +102,7 @@ if "perfil_atual" not in st.session_state:
         if not likes[
             (likes["quem_curtiu"] == usuario) & (likes["quem_foi_curtido"] == p["login"])
         ].empty:
-            continue  # já curtiu esse
+            continue
         st.session_state.perfil_atual = p
         break
     else:
@@ -113,6 +111,7 @@ if "perfil_atual" not in st.session_state:
 
 perfil = st.session_state.perfil_atual
 
+# Exibição de dados
 st.subheader(perfil.get("nome_publico", "Nome não informado"))
 st.text(perfil.get("descricao", ""))
 st.markdown("🎵 **Músicas do set:**")
@@ -134,30 +133,28 @@ if isinstance(fotos, str) and fotos.strip():
 else:
     st.write("Sem fotos para mostrar.")
 
-# Botões de ação
+# Botões
 col1, col2 = st.columns(2)
 with col1:
     if st.button("💖 Curtir"):
-        # Atualiza os likes da planilha para checar de novo
-        likes_data = likes_ws.get_all_records()
-        df_likes = pd.DataFrame(likes_data)
+        # Verifica novamente antes de registrar
+        likes_atualizados = likes_ws.get_all_records()
+        df_likes = pd.DataFrame(likes_atualizados)
         df_likes.columns = df_likes.columns.str.strip()
 
-        # Verifica se já curtiu
-        ja_curtiu = not df_likes[
+        ja_curtiu_este = not df_likes[
             (df_likes["quem_curtiu"] == usuario) & 
             (df_likes["quem_foi_curtido"] == perfil["login"])
         ].empty
 
-        if ja_curtiu:
+        if ja_curtiu_este:
             st.warning("Você já curtiu esse perfil.")
         else:
             likes_ws.append_row([usuario, perfil["login"]])
-            st.toast("Like enviado! Carregando o próximo perfil...", icon="💘")
-            time.sleep(2)
-
-        del st.session_state.perfil_atual
-        st.rerun()
+            st.toast("Like registrado 💘", icon="💘")
+            time.sleep(1.2)
+            del st.session_state.perfil_atual
+            st.rerun()
 
 with col2:
     if st.button("⏩ Pular"):
