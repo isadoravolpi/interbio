@@ -96,6 +96,20 @@ if isinstance(fotos, str) and fotos.strip():
 else:
     st.write("Sem fotos para mostrar.")
 
+import requests
+
+st.subheader("🔍 Teste de carregamento das imagens via requests")
+for i, link in enumerate(lista_links):
+    link_convertido = drive_link_para_visualizacao(link)
+    st.write(f"🔗 Link {i}: {link_convertido}")
+    try:
+        r = requests.get(link_convertido)
+        st.write(f"✅ Status HTTP: {r.status_code}")
+        st.write(f"📄 Content-Type: {r.headers.get('content-type')}")
+    except Exception as e:
+        st.write(f"❌ Erro ao acessar: {e}")
+
+
 # Botões de ação
 col1, col2 = st.columns(2)
 with col1:
