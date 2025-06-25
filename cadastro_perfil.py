@@ -17,7 +17,7 @@ drive = GoogleDrive(gauth)
 
 # --- Configurações ---
 PLANILHA = "TINDER_CEO_PERFIS"
-PASTA_ID = "1HXgLg-DiC_kjjQ7UFqzwFLeeR_cqgdA3"  # ID da pasta no Google Drive
+PASTA_ID = "1HXgLg-DiC_kjjQ7UFqzwFLeeR_cqgdA3"  # ID da pasta do Drive
 
 # Abre planilha
 try:
@@ -44,6 +44,15 @@ descricao = st.text_area("3 palavras (ou mais) sobre você")
 musicas = st.text_area("Músicas que tocariam no seu set")
 fotos = st.file_uploader("Envie até 5 fotos", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
+# --- Pré-visualização das fotos em grade ---
+if fotos:
+    st.subheader("Pré-visualização das fotos:")
+    cols = st.columns(3)
+    for i, f in enumerate(fotos):
+        with cols[i % 3]:
+            st.image(f, use_column_width=True)
+
+# --- Botão de envio ---
 if st.button("Enviar"):
     if not all([login, nome_publico, contato, descricao, musicas]) or not fotos:
         st.warning("Preencha todos os campos e envie pelo menos uma foto.")
@@ -62,22 +71,22 @@ if st.button("Enviar"):
             "title": nome_arquivo,
             "parents": [{"id": PASTA_ID}]
         })
-        # Upload da imagem binária
-        arquivo_drive.SetContentFile(f.name)
+
+        # Upload direto da memória
+        arquivo_drive.SetContentBytes(f.getbuffer())
         arquivo_drive.Upload()
 
-        # Torna a imagem pública
+        # Permissão pública
         arquivo_drive.InsertPermission({
             "type": "anyone",
             "value": "anyone",
             "role": "reader"
         })
 
-        # Link direto para uso no app
         link_publico = f"https://drive.google.com/uc?id={arquivo_drive['id']}"
         links_fotos.append(link_publico)
 
-    # Salva dados na planilha
+    # Salva na planilha
     nova_linha = [
         login,
         nome_publico,
