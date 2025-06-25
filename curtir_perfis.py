@@ -138,7 +138,7 @@ with col1:
         # Verifica se like já existe
         ja_curtiu = (
             not df_likes[
-                (df_likes["quem_curtiu"] == usuario) & 
+                (df_likes["quem_curtiu"] == usuario) &
                 (df_likes["quem_foi_curtido"] == perfil["login"])
             ].empty
         )
