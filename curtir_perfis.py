@@ -21,15 +21,12 @@ except gspread.exceptions.WorksheetNotFound:
     likes_ws = sheet.add_worksheet(title="likes", rows="1000", cols="5")
     likes_ws.append_row(["quem_curtiu", "quem_foi_curtido"])
 
-# Função para converter link do Google Drive para link direto de imagem
-def drive_link_para_visualizacao(drive_link):
-    if "drive.google.com/uc?id=" in drive_link:
-        file_id = drive_link.split("id=")[-1]
-    elif "drive.google.com/file/d/" in drive_link:
-        file_id = drive_link.split("/d/")[-1].split("/")[0]
-    else:
-        return drive_link
-    return f"https://drive.google.com/uc?export=download&id={file_id}"
+# Função para converter link do Google Drive em URL direta para <img>
+def drive_link_para_visualizacao(link):
+    if "id=" in link:
+        file_id = link.split("id=")[-1]
+        return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
+    return link
 
 # Interface
 st.title("💘LIKES DA CEÓ")
@@ -82,17 +79,17 @@ st.text(perfil.get("descricao", ""))
 st.markdown("🎵 **Músicas do set:**")
 st.text(perfil.get("musicas", ""))
 
-# Exibe fotos com HTML (modo seguro)
+# Exibe fotos
 fotos = perfil.get("fotos", "")
 if isinstance(fotos, str) and fotos.strip():
     lista_links = [link.strip() for link in fotos.split(";") if link.strip()]
     st.info("Fotos enviadas:")
     cols = st.columns(3)
     for i, link in enumerate(lista_links):
-        link_convertido = drive_link_para_visualizacao(link)
+        img_url = drive_link_para_visualizacao(link)
         with cols[i % 3]:
             st.markdown(
-                f'<img src="{link_convertido}" style="width:100%; border-radius: 10px; margin-bottom:10px;">',
+                f'<img src="{img_url}" style="width:100%; border-radius: 10px; margin-bottom:10px;">',
                 unsafe_allow_html=True
             )
 else:
