@@ -2,18 +2,25 @@ import streamlit as st
 import gspread
 import pandas as pd
 import time
-from oauth2client.service_account import ServiceAccountCredentials
 import random
+from google.oauth2.service_account import Credentials
 
-# Autenticação com Google Sheets
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+# Escopos para Google Sheets e Drive
+scope = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
+
+# Credenciais a partir do segredo do Streamlit
 creds_dict = st.secrets["gcp_service_account"]
-creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(creds_dict), scope)
+creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
+
+# Autoriza cliente gspread
 client = gspread.authorize(creds)
 
 PLANILHA = "TINDER_CEO_PERFIS"
 
-# Tenta abrir a planilha com retry
+# Tenta abrir a planilha com retry e cache
 @st.cache_data(ttl=60)
 def carregar_sheet():
     for tentativa in range(3):
@@ -27,7 +34,7 @@ def carregar_sheet():
 
 sheet = carregar_sheet()
 
-# Abas
+# Acesso às abas
 perfis_ws = sheet.worksheet("perfis")
 try:
     likes_ws = sheet.worksheet("likes")
@@ -67,7 +74,7 @@ if "login" not in df.columns:
     st.error("A aba 'perfis' precisa da coluna 'login'.")
     st.stop()
 
-# Remove o próprio perfil
+# Remove o próprio perfil do usuário
 df = df[df["login"] != usuario]
 
 # Carrega likes
@@ -92,11 +99,12 @@ if "perfil_atual" not in st.session_state:
     perfis_possiveis = df_restantes.to_dict("records")
     random.shuffle(perfis_possiveis)
 
+    # Garantindo não mostrar repetidos (extra proteção)
     for p in perfis_possiveis:
         if not likes[
             (likes["quem_curtiu"] == usuario) & (likes["quem_foi_curtido"] == p["login"])
         ].empty:
-            continue  # já curtiu esse
+            continue
         st.session_state.perfil_atual = p
         break
     else:
@@ -130,12 +138,11 @@ else:
 col1, col2 = st.columns(2)
 with col1:
     if st.button("💖 Curtir"):
-        # Recarrega diretamente da planilha para garantir dados atualizados
+        # Recarrega likes atualizados para evitar repetição
         likes_atualizados = likes_ws.get_all_records()
         df_likes = pd.DataFrame(likes_atualizados)
         df_likes.columns = df_likes.columns.str.strip()
 
-        # Verifica se like já existe
         ja_curtiu = (
             not df_likes[
                 (df_likes["quem_curtiu"] == usuario) &
@@ -148,7 +155,6 @@ with col1:
         else:
             likes_ws.append_row([usuario, perfil["login"]])
             st.success("Curtida registrada com sucesso 💘")
-
         del st.session_state.perfil_atual
         st.rerun()
 
