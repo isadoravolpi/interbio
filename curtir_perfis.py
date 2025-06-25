@@ -12,12 +12,11 @@ client = gspread.authorize(creds)
 
 PLANILHA = "TINDER_CEO_PERFIS"
 
-# Função para abrir planilha com retry
 def abrir_planilha_com_retry(nome, tentativas=3, delay=1.5):
     for tentativa in range(tentativas):
         try:
             return client.open(nome)
-        except gspread.exceptions.APIError as e:
+        except gspread.exceptions.APIError:
             if tentativa == tentativas - 1:
                 st.error("Erro ao conectar com o Google Sheets. Tente novamente em instantes.")
                 st.stop()
@@ -25,7 +24,6 @@ def abrir_planilha_com_retry(nome, tentativas=3, delay=1.5):
 
 sheet = abrir_planilha_com_retry(PLANILHA)
 
-# Abas
 perfis_ws = sheet.worksheet("perfis")
 try:
     likes_ws = sheet.worksheet("likes")
@@ -33,14 +31,13 @@ except gspread.exceptions.WorksheetNotFound:
     likes_ws = sheet.add_worksheet(title="likes", rows="1000", cols="5")
     likes_ws.append_row(["quem_curtiu", "quem_foi_curtido"])
 
-# Função para converter link do Google Drive em URL direta para <img>
 def drive_link_para_visualizacao(link):
     if "id=" in link:
         file_id = link.split("id=")[-1]
         return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
     return link
 
-@st.cache_data(ttl=90, show_spinner=False)  # cache por 5 minutos
+@st.cache_data(ttl=300, show_spinner=False)
 def carregar_perfis():
     valores = perfis_ws.get_all_values()
     if not valores:
@@ -60,7 +57,6 @@ def carregar_likes():
     df_likes.columns = df_likes.columns.str.strip()
     return df_likes
 
-# Interface
 st.title("💘LIKES DA CEÓ")
 
 usuario = st.text_input("Digite seu login privado")
@@ -98,6 +94,7 @@ if df_restantes.empty:
     st.stop()
 
 perfil = df_restantes.sample(1).iloc[0]
+st.session_state.perfil_mostrado = perfil["login"]
 st.session_state.ultimo_login = perfil["login"]
 
 st.subheader(perfil.get("nome_publico", "Nome não informado"))
@@ -120,17 +117,18 @@ if isinstance(fotos, str) and fotos.strip():
 else:
     st.write("Sem fotos para mostrar.")
 
-st.session_state["perfil_para_curtir"] = perfil["login"]
-
 col1, col2 = st.columns(2)
 with col1:
     if st.button("💖 Curtir", key="curtir"):
-        perfil_para_curtir = st.session_state.get("perfil_para_curtir")
+        perfil_para_curtir = st.session_state.get("perfil_mostrado")
         if perfil_para_curtir:
-            likes_ws.append_row([usuario, perfil_para_curtir])
-            st.cache_data.clear()  # limpa cache para forçar recarregar dados
-            st.experimental_rerun()
+            with st.spinner("Registrando seu like..."):
+                likes_ws.append_row([usuario, perfil_para_curtir])
+                st.cache_data.clear()
+                st.session_state.ultimo_login = None
+                st.rerun()
 
 with col2:
     if st.button("⏩ Pular", key="pular"):
-        st.experimental_rerun()
+        st.session_state.ultimo_login = None
+        st.rerun()
