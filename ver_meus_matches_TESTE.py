@@ -22,6 +22,7 @@ def drive_link_para_visualizacao(link):
     return link
 
 # Interface
+st.image("logo_besouro.png", width=400)
 st.title("💍MATCHES DA CEÓ")
 
 usuario = st.text_input("Digite seu nome de login privado (igual cadastrado)")
