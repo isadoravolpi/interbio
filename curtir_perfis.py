@@ -5,19 +5,19 @@ import time
 import random
 from google.oauth2.service_account import Credentials
 
-# Define os escopos necessários
+# Escopos para Google Sheets e Drive
 scope = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
 ]
 
-# Carrega as credenciais do serviço a partir do secrets do Streamlit
+# Credenciais carregadas do secrets.toml (já com a estrutura JSON)
 creds_info = st.secrets["gcp_service_account"]
 
-# Cria credenciais usando google.oauth2.service_account
+# Cria as credenciais google.oauth2 com os escopos
 creds = Credentials.from_service_account_info(creds_info, scopes=scope)
 
-# Autoriza o cliente gspread com essas credenciais
+# Autoriza o cliente gspread
 client = gspread.authorize(creds)
 
 PLANILHA = "TINDER_CEO_PERFIS"
@@ -146,9 +146,9 @@ with col1:
             st.success("Curtida registrada com sucesso 💘")
 
         del st.session_state.perfil_atual
-        st.rerun()
+        st.experimental_rerun()
 
 with col2:
     if st.button("⏩ Pular"):
         del st.session_state.perfil_atual
-        st.rerun()
+        st.experimental_rerun()
