@@ -1,7 +1,6 @@
 import streamlit as st
 import gspread
 import pandas as pd
-import random
 from oauth2client.service_account import ServiceAccountCredentials
 
 # Autenticação com Google Sheets
@@ -52,12 +51,11 @@ else:
     likes = pd.DataFrame(likes_data)
     likes.columns = likes.columns.str.strip()
 
-# Proteção contra falta de colunas
 if not set(["quem_curtiu", "quem_foi_curtido"]).issubset(likes.columns):
     st.error("A aba 'likes' precisa das colunas 'quem_curtiu' e 'quem_foi_curtido'.")
     st.stop()
 
-# Remove perfis já curtidos
+# Remove perfis já curtidos pelo usuário atual
 ja_curtiu = likes[likes["quem_curtiu"] == usuario]["quem_foi_curtido"].tolist()
 df_restantes = df[~df["login"].isin(ja_curtiu)]
 
@@ -73,18 +71,18 @@ st.text(perfil.get("descricao", ""))
 st.markdown("🎵 **Músicas do set:**")
 st.text(perfil.get("musicas", ""))
 
-# 📸 Mostra links das fotos (opcional)
+# Mostrar fotos com links separados por ';'
 fotos = perfil.get("fotos", "")
 if isinstance(fotos, str) and fotos.strip():
     st.info("Fotos enviadas:")
-    for link in fotos.split(","):
+    for link in fotos.split(";"):
         link = link.strip()
         if link.startswith("http"):
             st.image(link, use_column_width=True)
         else:
             st.write(link)
 
-# Botões de ação
+# Botões de ação lado a lado
 col1, col2 = st.columns(2)
 with col1:
     if st.button("💖 Curtir"):
