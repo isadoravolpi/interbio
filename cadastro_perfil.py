@@ -51,7 +51,7 @@ if fotos:
     cols = st.columns(3)
     for i, f in enumerate(fotos):
         with cols[i % 3]:
-            st.image(f, use_column_width=True)
+            st.image(f, use_container_width=True)
 
 # --- Botão de envio ---
 if st.button("Enviar"):
