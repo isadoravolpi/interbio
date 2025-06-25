@@ -83,9 +83,9 @@ st.write(perfil.get("fotos", "Sem fotos"))
 col1, col2 = st.columns(2)
 with col1:
     if st.button("💖 Curtir"):
-        likes_ws.append_row([usuario, perfil["login"]])
-        st.experimental_rerun()
+    likes_ws.append_row([usuario, perfil["login"]])
+    st.rerun()
 
 with col2:
     if st.button("⏩ Pular"):
-        st.experimental_rerun()
+         st.rerun()
