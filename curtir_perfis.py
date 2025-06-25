@@ -12,61 +12,80 @@ client = gspread.authorize(creds)
 
 # Nome da planilha
 PLANILHA = "TINDER_CEO_PERFIS"
-
-# Acessa planilha e abas
 sheet = client.open(PLANILHA)
+
+# Abas obrigatórias
 perfis_ws = sheet.worksheet("perfis")
 
-# Cria aba 'likes' se não existir
+# Tenta acessar ou criar a aba 'likes'
 try:
     likes_ws = sheet.worksheet("likes")
 except gspread.exceptions.WorksheetNotFound:
     likes_ws = sheet.add_worksheet(title="likes", rows="1000", cols="5")
     likes_ws.append_row(["quem_curtiu", "quem_foi_curtido"])
 
-# Interface
-st.title("LIKES DA CEÓ💘")
+# Interface principal
+st.title("💘LIKES DA CEÓ")
 
 usuario = st.text_input("Digite seu login privado")
 if not usuario:
     st.stop()
 
-# Lê perfis
-df = pd.DataFrame(perfis_ws.get_all_records())
-df = df[df["login"] != usuario]
-
-# Lê likes existentes
-likes = pd.DataFrame(likes_ws.get_all_records())
-
-if "quem_curtiu" not in likes.columns or "quem_foi_curtido" not in likes.columns:
-    st.warning("A aba 'likes' está mal formatada. Verifique o cabeçalho.")
+# Carrega perfis
+perfis_data = perfis_ws.get_all_records()
+if not perfis_data:
+    st.warning("Nenhum perfil cadastrado ainda.")
     st.stop()
 
-# Filtra perfis ainda não curtidos
+df = pd.DataFrame(perfis_data)
+df.columns = df.columns.str.strip()
+
+if "login" not in df.columns:
+    st.error("A aba 'perfis' precisa da coluna 'login'.")
+    st.stop()
+
+# Remove o próprio usuário da lista
+df = df[df["login"] != usuario]
+
+# Carrega likes
+likes_data = likes_ws.get_all_records()
+if not likes_data:
+    likes = pd.DataFrame(columns=["quem_curtiu", "quem_foi_curtido"])
+else:
+    likes = pd.DataFrame(likes_data)
+    likes.columns = likes.columns.str.strip()
+
+# Garante que colunas obrigatórias existem
+if not set(["quem_curtiu", "quem_foi_curtido"]).issubset(likes.columns):
+    st.error("A aba 'likes' precisa das colunas 'quem_curtiu' e 'quem_foi_curtido'.")
+    st.stop()
+
+# Filtra perfis não curtidos ainda
+ja_curtiu = likes[likes["quem_curtiu"] == usuario]["quem_foi_curtido"].tolist()
 df_restantes = df[~df["login"].isin(ja_curtiu)]
 
 if df_restantes.empty:
-    st.success("Você já viu todos os perfis! Agora é só esperar os matches 💘")
+    st.success("Você já viu todos os perfis disponíveis! Agora é só esperar os matches 🥰")
     st.stop()
 
-# Embaralha e pega um perfil
+# Escolhe um perfil aleatório
 perfil = df_restantes.sample(1).iloc[0]
 
-st.subheader(perfil["nome_publico"])
-st.text(perfil["descricao"])
-st.text("🎵 Músicas favoritas:")
-st.text(perfil["musicas"])
+st.subheader(perfil.get("nome_publico", "Nome não informado"))
+st.text(perfil.get("descricao", ""))
+st.markdown("🎵 **Músicas favoritas:**")
+st.text(perfil.get("musicas", ""))
 
-# Mostra fotos (somente nomes por enquanto)
-st.info("As fotos não estão salvas, mas esses seriam os arquivos:")
-st.write(perfil["fotos"])
+# Mostra nomes das fotos (caso queira exibir futuramente)
+st.info("Fotos enviadas:")
+st.write(perfil.get("fotos", "Sem fotos"))
 
 col1, col2 = st.columns(2)
 with col1:
     if st.button("💖 Curtir"):
         likes_ws.append_row([usuario, perfil["login"]])
         st.experimental_rerun()
+
 with col2:
     if st.button("⏩ Pular"):
         st.experimental_rerun()
-
