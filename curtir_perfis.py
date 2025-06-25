@@ -90,7 +90,7 @@ if isinstance(fotos, str) and fotos.strip():
             st.write(f"Link {i}: {link} (tipo: {type(link)})")
             if isinstance(link, str) and link.startswith("http"):
                 link_convertido = drive_link_para_visualizacao(link)
-                st.image(link_convertido, use_column_width=True)
+                st.image(link_convertido)
             else:
                 st.write("Link inválido para imagem")
 else:
