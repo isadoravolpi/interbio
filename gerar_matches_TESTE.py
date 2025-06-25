@@ -1,41 +1,42 @@
-import os
+import gspread
 import pandas as pd
+from oauth2client.service_account import ServiceAccountCredentials
 
-LIKE_DIR = "likes"
-UPLOAD_DIR = "uploads"
+# Autenticação
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds = ServiceAccountCredentials.from_json_keyfile_name("secrets.json", scope)  # Troque pelo caminho correto
+client = gspread.authorize(creds)
 
-curtidas = {}
-for arquivo in os.listdir(LIKE_DIR):
-    if arquivo.endswith("_likes.csv"):
-        pessoa = arquivo.replace("_likes.csv", "")
-        df = pd.read_csv(os.path.join(LIKE_DIR, arquivo))
-        curtidas[pessoa] = df["curtido"].tolist()
+# Planilha
+sheet = client.open("TINDER_CEO_PERFIS")
+perfis_ws = sheet.worksheet("perfis")
+likes_ws = sheet.worksheet("likes")
 
-def carregar_dados(pessoa):
-    try:
-        return pd.read_csv(os.path.join(UPLOAD_DIR, pessoa, "dados.csv")).iloc[0]
-    except:
-        return None
+# Carrega dados
+df_perfis = pd.DataFrame(perfis_ws.get_all_records())
+df_likes = pd.DataFrame(likes_ws.get_all_records())
 
-matches = []
-for pessoa, curtidos in curtidas.items():
+# Normaliza
+df_perfis.columns = df_perfis.columns.str.strip()
+df_likes.columns = df_likes.columns.str.strip()
+
+# Cria dicionário de curtidas
+curtidas_dict = df_likes.groupby("quem_curtiu")["quem_foi_curtido"].apply(list).to_dict()
+
+# Detecta matches
+matches = set()
+for pessoa, curtidos in curtidas_dict.items():
     for alvo in curtidos:
-        if alvo in curtidas and pessoa in curtidas[alvo]:
-            par = sorted([pessoa, alvo])
-            if par not in matches:
-                matches.append(par)
+        if alvo in curtidas_dict and pessoa in curtidas_dict[alvo]:
+            matches.add(tuple(sorted((pessoa, alvo))))
 
+# Gera lista com dados completos
 match_info = []
-for m in matches:
-    p1, p2 = m
-    d1 = carregar_dados(p1)
-    d2 = carregar_dados(p2)
-
-    # Verifica se todos os campos obrigatórios existem
+for p1, p2 in matches:
+    d1 = df_perfis[df_perfis["login"] == p1].iloc[0].to_dict()
+    d2 = df_perfis[df_perfis["login"] == p2].iloc[0].to_dict()
     campos = ["nome_publico", "contato", "descricao", "musicas", "fotos"]
-    if not (d1 is not None and d2 is not None):
-        print(f"Pulado match entre {p1} e {p2} por dados ausentes.")
-        continue
+
     if not all(c in d1 and c in d2 for c in campos):
         print(f"Pulado match entre {p1} e {p2} por dados incompletos.")
         continue
@@ -59,6 +60,6 @@ for m in matches:
         "fotos": d1["fotos"]
     })
 
+# Salva CSV
 pd.DataFrame(match_info).to_csv("matches_completos.csv", index=False)
 print("Arquivo 'matches_completos.csv' criado com sucesso!")
-
