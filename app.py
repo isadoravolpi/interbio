@@ -7,7 +7,6 @@ st.markdown("Bem-vindo(a)! Use o menu lateral para navegar entre as páginas dis
 
 # Mapeamento de páginas: nome amigável → nome do módulo
 paginas = {
-    "📋 Cadastro de Perfil": "cadastro_perfil",
     "💖 Curtir Perfis": "curtir_perfis",
     "🤖 Gerar Matches": "gerar_matches_TESTE",
     "💍 Ver Meus Matches": "ver_meus_matches_TESTE",
