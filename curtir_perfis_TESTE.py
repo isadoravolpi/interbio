@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import pandas as pd
 import random
+import ast
 
 UPLOAD_DIR = "uploads"
 LIKE_DIR = "likes"
@@ -19,9 +20,14 @@ if os.path.exists(like_path):
 else:
     ja_curtiu = []
 
+# Pega só pastas em UPLOAD_DIR e que não sejam o usuário logado
+participantes = [
+    p for p in os.listdir(UPLOAD_DIR)
+    if p != usuario and os.path.isdir(os.path.join(UPLOAD_DIR, p))
+]
+
 # Gera e guarda a lista embaralhada de perfis restantes apenas uma vez
 if "restantes" not in st.session_state:
-    participantes = [p for p in os.listdir(UPLOAD_DIR) if p != usuario]
     random.shuffle(participantes)
     st.session_state.restantes = [p for p in participantes if p not in ja_curtiu]
     st.session_state.indice_perfil = 0
@@ -53,33 +59,40 @@ except Exception as e:
 
 # Verifica se o perfil tem os campos obrigatórios
 campos_obrigatorios = ["nome_publico", "descricao", "musicas", "fotos"]
-if any(c not in dados for c in campos_obrigatorios):
+if any(c not in dados.index for c in campos_obrigatorios):
     st.warning(f"Perfil de {perfil} incompleto. Pulando...")
     st.session_state.indice_perfil += 1
-    st.rerun()
+    st.experimental_rerun()
 
 st.subheader(dados["nome_publico"])
 st.text(dados["descricao"])
 st.text("Músicas favoritas:")
 st.text(dados["musicas"])
 
-for foto_nome in dados["fotos"].strip("[]").replace("'", "").split(", "):
+# Converte a string fotos para lista
+try:
+    fotos_lista = ast.literal_eval(dados["fotos"])
+except Exception as e:
+    fotos_lista = []
+    st.warning(f"Erro ao ler fotos do perfil {perfil}: {e}")
+
+for foto_nome in fotos_lista:
     caminho_foto = os.path.join(perfil_dir, foto_nome)
     if os.path.exists(caminho_foto):
         st.image(caminho_foto, use_column_width=True)
 
 col1, col2 = st.columns(2)
 with col1:
-    if st.button("💖 Curtir"):
+    if st.button("💖 Curtir", key="curtir"):
         novo_like = pd.DataFrame([{"curtido": perfil}])
         if os.path.exists(like_path):
             novo_like.to_csv(like_path, mode='a', header=False, index=False)
         else:
             novo_like.to_csv(like_path, index=False)
         st.session_state.indice_perfil += 1
-        st.rerun()
+        st.experimental_rerun()
 
 with col2:
-    if st.button("⏩ Pular"):
+    if st.button("⏩ Pular", key="pular"):
         st.session_state.indice_perfil += 1
-        st.rerun()
+        st.experimental_rerun()
