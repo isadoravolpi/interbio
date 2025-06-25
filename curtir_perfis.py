@@ -21,12 +21,15 @@ except gspread.exceptions.WorksheetNotFound:
     likes_ws = sheet.add_worksheet(title="likes", rows="1000", cols="5")
     likes_ws.append_row(["quem_curtiu", "quem_foi_curtido"])
 
-# Função para converter link do Google Drive para link direto de visualização
+# Função para converter link do Google Drive para link direto de imagem
 def drive_link_para_visualizacao(drive_link):
     if "drive.google.com/uc?id=" in drive_link:
         file_id = drive_link.split("id=")[-1]
-        return f"https://drive.google.com/uc?export=view&id={file_id}"
-    return drive_link
+    elif "drive.google.com/file/d/" in drive_link:
+        file_id = drive_link.split("/d/")[-1].split("/")[0]
+    else:
+        return drive_link
+    return f"https://drive.google.com/uc?export=download&id={file_id}"
 
 # Interface
 st.title("💘LIKES DA CEÓ")
@@ -35,7 +38,7 @@ usuario = st.text_input("Digite seu login privado")
 if not usuario:
     st.stop()
 
-# Carrega perfis com default_blank para evitar conversão de tipos
+# Carrega perfis
 perfis_data = perfis_ws.get_all_records(default_blank="")
 if not perfis_data:
     st.warning("Nenhum perfil cadastrado ainda.")
@@ -79,7 +82,7 @@ st.text(perfil.get("descricao", ""))
 st.markdown("🎵 **Músicas do set:**")
 st.text(perfil.get("musicas", ""))
 
-# Exibe fotos com HTML
+# Exibe fotos com HTML (modo seguro)
 fotos = perfil.get("fotos", "")
 if isinstance(fotos, str) and fotos.strip():
     lista_links = [link.strip() for link in fotos.split(";") if link.strip()]
