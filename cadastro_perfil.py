@@ -11,18 +11,32 @@ scope = [
     "https://www.googleapis.com/auth/drive"
 ]
 
-# Credenciais
-creds_dict = st.secrets["gcp_service_account"]
-creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(creds_dict), scope)
+# Cache das credenciais
+@st.cache_resource
+def carregar_credenciais():
+    creds_dict = st.secrets["gcp_service_account"]
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(creds_dict), scope)
+    return creds
 
-# Autorização Google Sheets
-client = gspread.authorize(creds)
+# Autenticação
+creds = carregar_credenciais()
 
-# Serviço Google Drive (upload)
-drive_service = build('drive', 'v3', credentials=creds)
+# Cache do client do Google Sheets
+@st.cache_resource
+def conectar_google_sheets(creds):
+    return gspread.authorize(creds)
+
+client = conectar_google_sheets(creds)
+
+# Cache do serviço do Google Drive
+@st.cache_resource
+def conectar_drive(creds):
+    return build('drive', 'v3', credentials=creds)
+
+drive_service = conectar_drive(creds)
 
 # ID da pasta para fotos no Drive
-PASTA_DRIVE_ID = "1HXgLg-DiC_kjjQ7UFqzwFLeeR_cqgdA3"  # altere para seu ID
+PASTA_DRIVE_ID = "1HXgLg-DiC_kjjQ7UFqzwFLeeR_cqgdA3"
 
 # Nome da planilha
 PLANILHA = "TINDER_CEO_PERFIS"
@@ -40,6 +54,8 @@ except gspread.exceptions.WorksheetNotFound:
     aba = sheet.add_worksheet(title="perfis", rows="1000", cols="10")
     aba.append_row(["login", "nome_publico", "contato", "descricao", "musicas", "fotos"])
 
+# ------------------- INTERFACE ----------------------
+
 st.image("logo_besouro.png", width=400)
 st.title("TINDER DA CEÓ 💖")
 
@@ -48,18 +64,27 @@ nome_publico = st.text_input("Nome/apelido")
 contato = st.text_input("Instagram, e-mail...")
 descricao = st.text_area("3 palavras (ou mais) sobre você")
 musicas = st.text_area("Músicas que tocariam no seu set")
-fotos = st.file_uploader("Envie até 3 fotos cada uma com no máximo 5 MB", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
+fotos = st.file_uploader(
+    "Envie até 3 fotos, cada uma com no máximo 5 MB",
+    type=["jpg", "jpeg", "png"],
+    accept_multiple_files=True
+)
 
 if fotos and len(fotos) > 3:
     st.warning("Você pode enviar no máximo 3 fotos.")
     st.stop()
+
+# Função para obter logins existentes com cache
+@st.cache_data(ttl=30)
+def carregar_logins(aba):
+    return aba.col_values(1)
 
 if st.button("Enviar"):
     if not all([login, nome_publico, contato, descricao, musicas]) or not fotos:
         st.warning("Preencha todos os campos e envie pelo menos uma foto.")
         st.stop()
 
-    # Valida tamanho das fotos (máximo 5MB)
+    # Valida tamanho das fotos
     for f in fotos:
         tamanho_mb = f.size / (1024 * 1024)
         if tamanho_mb > 5:
@@ -68,7 +93,7 @@ if st.button("Enviar"):
 
     nomes_fotos = [f"{login}_{i+1}.jpg" for i in range(len(fotos))]
 
-    existentes = aba.col_values(1)
+    existentes = carregar_logins(aba)
     if login in existentes:
         st.error("Esse login já foi usado. Tente outro.")
         st.stop()
