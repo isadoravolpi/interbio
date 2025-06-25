@@ -86,7 +86,7 @@ if isinstance(fotos, str) and fotos.strip():
         with cols[i % 3]:
             st.write(f"Exibindo link {i}: {link}")
             if link.startswith("http"):
-                st.image(link, use_column_width=True)
+                st.image(link, use_container_width=True)
             else:
                 st.write(link)
 else:
