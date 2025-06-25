@@ -28,8 +28,8 @@ usuario = st.text_input("Digite seu login privado")
 if not usuario:
     st.stop()
 
-# Carrega perfis
-perfis_data = perfis_ws.get_all_records()
+# Carrega perfis com default_blank para evitar conversão de tipos
+perfis_data = perfis_ws.get_all_records(default_blank="")
 if not perfis_data:
     st.warning("Nenhum perfil cadastrado ainda.")
     st.stop()
@@ -72,18 +72,25 @@ st.text(perfil.get("descricao", ""))
 st.markdown("🎵 **Músicas do set:**")
 st.text(perfil.get("musicas", ""))
 
-# 📸 Mostra as fotos em grade 3 colunas, separando por vírgula
+# Debug do campo fotos
 fotos = perfil.get("fotos", "")
+st.write("Conteúdo bruto do campo 'fotos':", repr(fotos))
+
 if isinstance(fotos, str) and fotos.strip():
-    st.info("Fotos enviadas:")
     lista_links = [link.strip() for link in fotos.split(",") if link.strip()]
+    st.write("Links após split:", lista_links)
+
+    st.info("Fotos enviadas:")
     cols = st.columns(3)
     for i, link in enumerate(lista_links):
         with cols[i % 3]:
+            st.write(f"Exibindo link {i}: {link}")
             if link.startswith("http"):
-                st.image(link, use_container_width=True)
+                st.image(link, use_column_width=True)
             else:
                 st.write(link)
+else:
+    st.write("Sem fotos para mostrar.")
 
 # Botões de ação
 col1, col2 = st.columns(2)
