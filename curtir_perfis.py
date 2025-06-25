@@ -37,7 +37,10 @@ df = df[df["login"] != usuario]
 
 # Lê likes existentes
 likes = pd.DataFrame(likes_ws.get_all_records())
-ja_curtiu = likes[likes["quem_curtiu"] == usuario]["quem_foi_curtido"].tolist()
+
+if "quem_curtiu" not in likes.columns or "quem_foi_curtido" not in likes.columns:
+    st.warning("A aba 'likes' está mal formatada. Verifique o cabeçalho.")
+    st.stop()
 
 # Filtra perfis ainda não curtidos
 df_restantes = df[~df["login"].isin(ja_curtiu)]
