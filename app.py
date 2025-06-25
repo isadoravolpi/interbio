@@ -1,14 +1,25 @@
 import streamlit as st
 
-st.set_page_config(page_title="Tinder CEÓ")
+st.set_page_config(page_title="Tinder CEÓ", page_icon="💘")
 
-pagina = st.sidebar.selectbox("Navegação", ["tinder_ceo_TESTE", "curtir_perfis_TESTE", "ver_meus_matches_TESTE", "visualizar_dados"])
+st.title("💘 TINDER DA CEÓ")
+st.markdown("Bem-vindo(a)! Use o menu lateral para navegar entre as páginas disponíveis.")
 
-if pagina == "tinder_ceo_TESTE":
-    import tinder_ceo_TESTE
-elif pagina == "curtir_perfis_TESTE":
-    import curtir_perfis_TESTE
-elif pagina == "ver_meus_matches_TESTE":
-    import ver_meus_matches_TESTE
-elif pagina == "visualizar_dados":
-    import visualizar_dados
+# Mapeamento de páginas: nome amigável → nome do módulo
+paginas = {
+    "📋 Cadastro de Perfil": "cadastro_perfil",
+    "💖 Curtir Perfis": "curtir_perfis",
+    "🤖 Gerar Matches": "gerar_matches_TESTE",
+    "💍 Ver Meus Matches": "ver_meus_matches_TESTE",
+    "📊 Visualizar Dados": "visualizar_dados",
+    "🧹 Resetar App": "reset_app"
+}
+
+escolhida = st.sidebar.selectbox("Navegação", list(paginas.keys()))
+
+# Tenta importar o módulo correspondente
+try:
+    exec(f"import {paginas[escolhida]}")
+except Exception as e:
+    st.error(f"Erro ao carregar a página **{escolhida}**.")
+    st.exception(e)
