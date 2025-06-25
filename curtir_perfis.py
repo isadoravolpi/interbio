@@ -34,6 +34,7 @@ def drive_link_para_visualizacao(link):
         return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
     return link
 
+st.image("logo_besouro.png", width=400)
 st.title("💘LIKES DA CEÓ")
 
 usuario = st.text_input("Digite seu login privado")
