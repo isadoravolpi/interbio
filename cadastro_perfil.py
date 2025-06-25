@@ -93,18 +93,25 @@ if st.button("Enviar"):
         link_publico = f"https://drive.google.com/uc?id={arquivo_drive['id']}"
         links_fotos.append(link_publico)
 
-    # Mostra todos os links gerados (para debug)
+    # Debug: Mostrar links gerados e string final
+    fotos_str = ";".join(links_fotos)
     st.write("Links das fotos gerados:", links_fotos)
+    st.write("String para salvar na planilha:", fotos_str)
 
-    # Salva na planilha
     nova_linha = [
         login,
         nome_publico,
         contato,
         descricao,
         musicas,
-        ";".join(links_fotos)  # junta todos com ';'
+        fotos_str
     ]
-    aba.append_row(nova_linha)
+
+    st.write("Linha que será enviada para planilha:", nova_linha)
+
+    # Salva na planilha explicitando RAW para evitar formatação automática
+    aba.append_row(nova_linha, value_input_option='RAW')
+
     st.success("Cadastro enviado com sucesso! ✅")
+
 
