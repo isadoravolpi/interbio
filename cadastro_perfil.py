@@ -1,29 +1,33 @@
 import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 import tempfile
 
-# --- Escopo de acesso para Google Sheets e Drive ---
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+# Escopos
+scope = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive"
+]
 
-# --- Autenticação via st.secrets (Streamlit Cloud) ---
+# Credenciais
 creds_dict = st.secrets["gcp_service_account"]
 creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(creds_dict), scope)
+
+# Autorização Google Sheets
 client = gspread.authorize(creds)
 
-# Autentica PyDrive
-gauth = GoogleAuth()
-gauth.credentials = creds.get_access_token().access_token
-drive = GoogleDrive(gauth)
+# Serviço Google Drive (upload)
+drive_service = build('drive', 'v3', credentials=creds)
 
-# ID da pasta no Google Drive onde as fotos serão salvas
-PASTA_DRIVE_ID = "1HXgLg-DiC_kjjQ7UFqzwFLeeR_cqgdA3"  # coloque seu ID aqui
+# ID da pasta para fotos no Drive
+PASTA_DRIVE_ID = "1HXgLg-DiC_kjjQ7UFqzwFLeeR_cqgdA3"  # altere para seu ID
 
-# --- Nome da planilha exata ---
+# Nome da planilha
 PLANILHA = "TINDER_CEO_PERFIS"
 
+# Abrir planilha e aba "perfis"
 try:
     sheet = client.open(PLANILHA)
 except Exception as e:
@@ -55,11 +59,11 @@ if st.button("Enviar"):
         st.warning("Preencha todos os campos e envie pelo menos uma foto.")
         st.stop()
 
-    # Valida tamanho de cada arquivo (máximo 5MB)
+    # Valida tamanho das fotos (máximo 5MB)
     for f in fotos:
         tamanho_mb = f.size / (1024 * 1024)
         if tamanho_mb > 5:
-            st.warning(f"A foto {f.name} é muito grande ({tamanho_mb:.2f} MB). O máximo permitido é 5 MB.")
+            st.warning(f"A foto {f.name} é muito grande ({tamanho_mb:.2f} MB). Máximo permitido: 5 MB.")
             st.stop()
 
     nomes_fotos = [f"{login}_{i+1}.jpg" for i in range(len(fotos))]
@@ -69,19 +73,27 @@ if st.button("Enviar"):
         st.error("Esse login já foi usado. Tente outro.")
         st.stop()
 
-    # Upload das fotos para Google Drive e geração de links
     links_fotos = []
+
     for f, nome_arquivo in zip(fotos, nomes_fotos):
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
             tmp.write(f.read())
             tmp.flush()
-            arquivo_drive = drive.CreateFile({'title': nome_arquivo, 'parents': [{'id': PASTA_DRIVE_ID}]})
-            arquivo_drive.SetContentFile(tmp.name)
-            arquivo_drive.Upload()
-            link = f"https://drive.google.com/uc?export=view&id={arquivo_drive['id']}"
+
+            file_metadata = {
+                'name': nome_arquivo,
+                'parents': [PASTA_DRIVE_ID]
+            }
+            media = MediaFileUpload(tmp.name, mimetype='image/jpeg')
+            uploaded_file = drive_service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields='id'
+            ).execute()
+            file_id = uploaded_file.get('id')
+            link = f"https://drive.google.com/uc?export=view&id={file_id}"
             links_fotos.append(link)
 
-    # Salva na planilha separando os links por vírgula
     nova_linha = [
         login,
         nome_publico,
@@ -93,6 +105,3 @@ if st.button("Enviar"):
     aba.append_row(nova_linha)
 
     st.success("Cadastro enviado com sucesso! ✅")
-
-
-
