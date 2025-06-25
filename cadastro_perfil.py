@@ -26,15 +26,15 @@ except gspread.exceptions.WorksheetNotFound:
     aba = sheet.add_worksheet(title="perfis", rows="1000", cols="10")
     aba.append_row(["login", "nome_publico", "contato", "descricao", "musicas", "fotos"])
 
-st.image("logo_besouro.png", width=300)
+st.image("logo_besouro.png", width=400)
 st.title("TINDER DA CEÓ 💖")
 
-login = st.text_input("Login privado (único)")
+login = st.text_input("Login privado (sera usado depois)")
 nome_publico = st.text_input("Nome/apelido")
-contato = st.text_input("Instagram, e-mail ou outro contato")
-descricao = st.text_area("Fale um pouco sobre você")
-musicas = st.text_area("Músicas favoritas")
-fotos = st.file_uploader("Envie até 5 fotos (não serão salvas agora)", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
+contato = st.text_input("Instagram, e-mail...")
+descricao = st.text_area("3 palavras (ou mais) sobre você")
+musicas = st.text_area("Músicas que tocariam no seu set")
+fotos = st.file_uploader("Envie até 5 fotos", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
 if st.button("Enviar"):
     if not all([login, nome_publico, contato, descricao, musicas]) or not fotos:
