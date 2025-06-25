@@ -79,36 +79,21 @@ st.text(perfil.get("descricao", ""))
 st.markdown("🎵 **Músicas do set:**")
 st.text(perfil.get("musicas", ""))
 
-# Exibe as fotos convertendo os links para formato correto do Google Drive
+# Exibe fotos com HTML
 fotos = perfil.get("fotos", "")
 if isinstance(fotos, str) and fotos.strip():
     lista_links = [link.strip() for link in fotos.split(";") if link.strip()]
     st.info("Fotos enviadas:")
     cols = st.columns(3)
     for i, link in enumerate(lista_links):
+        link_convertido = drive_link_para_visualizacao(link)
         with cols[i % 3]:
-            st.write(f"Link {i}: {link} (tipo: {type(link)})")
-            if isinstance(link, str) and link.startswith("http"):
-                link_convertido = drive_link_para_visualizacao(link)
-                st.image(link_convertido)
-            else:
-                st.write("Link inválido para imagem")
+            st.markdown(
+                f'<img src="{link_convertido}" style="width:100%; border-radius: 10px; margin-bottom:10px;">',
+                unsafe_allow_html=True
+            )
 else:
     st.write("Sem fotos para mostrar.")
-
-import requests
-
-st.subheader("🔍 Teste de carregamento das imagens via requests")
-for i, link in enumerate(lista_links):
-    link_convertido = drive_link_para_visualizacao(link)
-    st.write(f"🔗 Link {i}: {link_convertido}")
-    try:
-        r = requests.get(link_convertido)
-        st.write(f"✅ Status HTTP: {r.status_code}")
-        st.write(f"📄 Content-Type: {r.headers.get('content-type')}")
-    except Exception as e:
-        st.write(f"❌ Erro ao acessar: {e}")
-
 
 # Botões de ação
 col1, col2 = st.columns(2)
