@@ -51,7 +51,7 @@ if fotos:
     cols = st.columns(3)
     for i, f in enumerate(fotos):
         with cols[i % 3]:
-            st.image(f, use_container_width=True)
+            st.image(f, use_column_width=True)
 
 # --- Botão de envio ---
 if st.button("Enviar"):
@@ -66,6 +66,7 @@ if st.button("Enviar"):
         st.stop()
 
     links_fotos = []
+
     for i, f in enumerate(fotos):
         nome_arquivo = f"{login}_{i+1}.jpg"
 
@@ -88,9 +89,12 @@ if st.button("Enviar"):
             "role": "reader"
         })
 
-        # Link direto para usar no app
+        # Link direto
         link_publico = f"https://drive.google.com/uc?id={arquivo_drive['id']}"
         links_fotos.append(link_publico)
+
+    # Mostra todos os links gerados (para debug)
+    st.write("Links das fotos gerados:", links_fotos)
 
     # Salva na planilha
     nova_linha = [
@@ -99,7 +103,8 @@ if st.button("Enviar"):
         contato,
         descricao,
         musicas,
-        ";".join(links_fotos)
+        ";".join(links_fotos)  # junta todos com ';'
     ]
     aba.append_row(nova_linha)
     st.success("Cadastro enviado com sucesso! ✅")
+
