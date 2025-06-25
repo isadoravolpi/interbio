@@ -39,14 +39,12 @@ except gspread.exceptions.WorksheetNotFound:
 st.image("logo_besouro.png", width=400)
 st.title("TINDER DA CEÓ 💖")
 
-st.markdown("**Importante:** Envie até 3 fotos, cada uma com no máximo 5 MB para evitar lentidão no upload.")
-
 login = st.text_input("Login privado (será usado depois)")
 nome_publico = st.text_input("Nome/apelido")
 contato = st.text_input("Instagram, e-mail...")
 descricao = st.text_area("3 palavras (ou mais) sobre você")
 musicas = st.text_area("Músicas que tocariam no seu set")
-fotos = st.file_uploader("Envie até 3 fotos", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
+fotos = st.file_uploader("Envie até 3 fotos cada uma com no máximo 5 MB", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
 if fotos and len(fotos) > 3:
     st.warning("Você pode enviar no máximo 3 fotos.")
