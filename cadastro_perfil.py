@@ -53,5 +53,5 @@ if st.button("Enviar"):
     nova_linha = [login, nome_publico, contato, descricao, musicas, ";".join(nomes_fotos)]
     aba.append_row(nova_linha)
 
-    st.success("Cadastro enviado com sucesso para a planilha Google! ✅")
+    st.success("Cadastro enviado com sucesso! ✅")
 
