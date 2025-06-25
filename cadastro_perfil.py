@@ -94,7 +94,7 @@ if st.button("Enviar"):
         links_fotos.append(link_publico)
 
     # Debug: Mostrar links gerados e string final
-    fotos_str = ";".join(links_fotos)
+    fotos_str = ",".join(links_fotos)  # trocar ; por ,
     st.write("Links das fotos gerados:", links_fotos)
     st.write("String para salvar na planilha:", fotos_str)
 
