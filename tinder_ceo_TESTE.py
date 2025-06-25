@@ -5,7 +5,7 @@ import pandas as pd
 os.makedirs("uploads", exist_ok=True)
 
 col1, col2, col3 = st.columns([1, 3, 1])
-with col2:st.image("C:/Users/isavo/Downloads/TINDER CEO/logo_besouro.png", width=400)
+with col2:st.image("logo_besouro.png", width=400)
 with col2:st.title("TINDER DA CEÓ 💖")
 
 nome_privado = st.text_input("Crie um nome de login privado (será usado depois)")
