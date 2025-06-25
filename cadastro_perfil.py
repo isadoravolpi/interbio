@@ -15,25 +15,23 @@ scope = [
 @st.cache_resource
 def carregar_credenciais():
     creds_dict = st.secrets["gcp_service_account"]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(creds_dict), scope)
-    return creds
-
-# Autenticação
-creds = carregar_credenciais()
+    return ServiceAccountCredentials.from_json_keyfile_dict(dict(creds_dict), scope)
 
 # Cache do client do Google Sheets
 @st.cache_resource
-def conectar_google_sheets(creds):
+def conectar_google_sheets():
+    creds = carregar_credenciais()
     return gspread.authorize(creds)
-
-client = conectar_google_sheets(creds)
 
 # Cache do serviço do Google Drive
 @st.cache_resource
-def conectar_drive(creds):
+def conectar_drive():
+    creds = carregar_credenciais()
     return build('drive', 'v3', credentials=creds)
 
-drive_service = conectar_drive(creds)
+# Inicializações com cache
+client = conectar_google_sheets()
+drive_service = conectar_drive()
 
 # ID da pasta para fotos no Drive
 PASTA_DRIVE_ID = "1HXgLg-DiC_kjjQ7UFqzwFLeeR_cqgdA3"
@@ -76,7 +74,7 @@ if fotos and len(fotos) > 3:
 
 # Função para obter logins existentes com cache
 @st.cache_data(ttl=30)
-def carregar_logins(aba):
+def carregar_logins():
     return aba.col_values(1)
 
 if st.button("Enviar"):
@@ -93,7 +91,7 @@ if st.button("Enviar"):
 
     nomes_fotos = [f"{login}_{i+1}.jpg" for i in range(len(fotos))]
 
-    existentes = carregar_logins(aba)
+    existentes = carregar_logins()
     if login in existentes:
         st.error("Esse login já foi usado. Tente outro.")
         st.stop()
