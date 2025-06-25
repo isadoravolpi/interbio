@@ -26,7 +26,8 @@ except gspread.exceptions.WorksheetNotFound:
     aba = sheet.add_worksheet(title="perfis", rows="1000", cols="10")
     aba.append_row(["login", "nome_publico", "contato", "descricao", "musicas", "fotos"])
 
-st.title("Cadastro - TINDER DA CEÓ 💖")
+st.image("logo_besouro.png", width=300)
+st.title("TINDER DA CEÓ 💖")
 
 login = st.text_input("Login privado (único)")
 nome_publico = st.text_input("Nome/apelido")
