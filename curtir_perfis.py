@@ -130,13 +130,27 @@ else:
 col1, col2 = st.columns(2)
 with col1:
     if st.button("💖 Curtir"):
-        # Revalida curtida antes de salvar
-        if not likes[
-            (likes["quem_curtiu"] == usuario) & (likes["quem_foi_curtido"] == perfil["login"])
-        ].empty:
-            st.warning("Você já curtiu esse perfil.")
-        else:
-            likes_ws.append_row([usuario, perfil["login"]])
+    # Recarrega likes atualizados da planilha
+    likes_atualizados = likes_ws.get_all_records()
+    df_likes = pd.DataFrame(likes_atualizados)
+    df_likes.columns = df_likes.columns.str.strip()
+
+    # Verifica se like já existe
+    ja_curtiu = (
+        not df_likes[
+            (df_likes["quem_curtiu"] == usuario) & 
+            (df_likes["quem_foi_curtido"] == perfil["login"])
+        ].empty
+    )
+
+    if ja_curtiu:
+        st.warning("Você já curtiu esse perfil.")
+    else:
+        likes_ws.append_row([usuario, perfil["login"]])
+        st.success("Curtida registrada com sucesso 💘")
+        st.balloons()
+        st.toast("Like enviado! Carregando o próximo perfil...", icon="💘")
+        time.sleep(2)  # pequena pausa para o feedback visual
         del st.session_state.perfil_atual
         st.rerun()
 
