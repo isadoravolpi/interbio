@@ -28,12 +28,20 @@ def carregar_sheet():
 sheet = carregar_sheet()
 
 # Abas
-perfis_ws = sheet.worksheet("perfis")
+try:
+    perfis_ws = sheet.worksheet("perfis")
+except Exception as e:
+    st.error(f"Erro ao acessar a aba 'perfis': {e}")
+    st.stop()
+
 try:
     likes_ws = sheet.worksheet("likes")
 except gspread.exceptions.WorksheetNotFound:
     likes_ws = sheet.add_worksheet(title="likes", rows="1000", cols="5")
     likes_ws.append_row(["quem_curtiu", "quem_foi_curtido"])
+except Exception as e:
+    st.error(f"Erro ao acessar a aba 'likes': {e}")
+    st.stop()
 
 # Função para converter link do Google Drive em URL direta para <img>
 def drive_link_para_visualizacao(link):
@@ -130,52 +138,26 @@ else:
 col1, col2 = st.columns(2)
 with col1:
     if st.button("💖 Curtir"):
-        # Recarrega likes atualizados da planilha
-        likes_atualizados = likes_ws.get_all_records()
-        df_likes = pd.DataFrame(likes_atualizados)
+        # Atualiza os likes da planilha para checar de novo
+        likes_data = likes_ws.get_all_records()
+        df_likes = pd.DataFrame(likes_data)
         df_likes.columns = df_likes.columns.str.strip()
 
-        # Verifica se like já existe
-        ja_curtiu = (
-            not df_likes[
-                (df_likes["quem_curtiu"] == usuario) & 
-                (df_likes["quem_foi_curtido"] == perfil["login"])
-            ].empty
-        )
+        # Verifica se já curtiu
+        ja_curtiu = not df_likes[
+            (df_likes["quem_curtiu"] == usuario) & 
+            (df_likes["quem_foi_curtido"] == perfil["login"])
+        ].empty
 
         if ja_curtiu:
             st.warning("Você já curtiu esse perfil.")
         else:
             likes_ws.append_row([usuario, perfil["login"]])
-            st.success("Curtida registrada com sucesso 💘")
             st.toast("Like enviado! Carregando o próximo perfil...", icon="💘")
-            time.sleep(2)  # pausa para feedback visual
-            del st.session_state.perfil_atual
-            st.rerun()
-with col1:
-    if st.button("💖 Curtir"):
-        # Recarrega likes atualizados da planilha
-        likes_atualizados = likes_ws.get_all_records()
-        df_likes = pd.DataFrame(likes_atualizados)
-        df_likes.columns = df_likes.columns.str.strip()
+            time.sleep(2)
 
-        # Verifica se like já existe
-        ja_curtiu = (
-            not df_likes[
-                (df_likes["quem_curtiu"] == usuario) & 
-                (df_likes["quem_foi_curtido"] == perfil["login"])
-            ].empty
-        )
-
-        if ja_curtiu:
-            st.warning("Você já curtiu esse perfil.")
-        else:
-            likes_ws.append_row([usuario, perfil["login"]])
-            st.success("Curtida registrada com sucesso 💘")
-            st.toast("Like enviado! Carregando o próximo perfil...", icon="💘")
-            time.sleep(2)  # pausa para feedback visual
-            del st.session_state.perfil_atual
-            st.rerun()
+        del st.session_state.perfil_atual
+        st.rerun()
 
 with col2:
     if st.button("⏩ Pular"):
