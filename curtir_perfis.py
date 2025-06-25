@@ -4,7 +4,7 @@ import pandas as pd
 import time
 from oauth2client.service_account import ServiceAccountCredentials
 
-# --- Autenticação com Google Sheets ---
+# Autenticação com Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds_dict = st.secrets["gcp_service_account"]
 creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(creds_dict), scope)
@@ -12,16 +12,18 @@ client = gspread.authorize(creds)
 
 PLANILHA = "TINDER_CEO_PERFIS"
 
-# Tenta abrir a planilha com retry
-for tentativa in range(3):
-    try:
-        sheet = client.open(PLANILHA)
-        break
-    except gspread.exceptions.APIError as e:
-        if tentativa == 2:
-            st.error("Erro ao conectar com o Google Sheets. Tente novamente em instantes.")
-            st.stop()
-        time.sleep(1.5)
+# Função para abrir planilha com retry
+def abrir_planilha_com_retry(nome, tentativas=3, delay=1.5):
+    for tentativa in range(tentativas):
+        try:
+            return client.open(nome)
+        except gspread.exceptions.APIError as e:
+            if tentativa == tentativas - 1:
+                st.error("Erro ao conectar com o Google Sheets. Tente novamente em instantes.")
+                st.stop()
+            time.sleep(delay)
+
+sheet = abrir_planilha_com_retry(PLANILHA)
 
 # Abas
 perfis_ws = sheet.worksheet("perfis")
@@ -38,8 +40,7 @@ def drive_link_para_visualizacao(link):
         return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
     return link
 
-# Cache para carregar perfis da planilha por 60 segundos
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=90, show_spinner=False)  # cache por 5 minutos
 def carregar_perfis():
     valores = perfis_ws.get_all_values()
     if not valores:
@@ -50,8 +51,7 @@ def carregar_perfis():
     df.columns = df.columns.str.strip()
     return df
 
-# Cache para carregar likes da planilha por 60 segundos
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300, show_spinner=False)
 def carregar_likes():
     likes_data = likes_ws.get_all_records()
     if not likes_data:
@@ -76,6 +76,7 @@ if "login" not in df.columns:
     st.error("A aba 'perfis' precisa da coluna 'login'.")
     st.stop()
 
+# Remove o próprio perfil
 df = df[df["login"] != usuario]
 
 likes = carregar_likes()
@@ -106,7 +107,7 @@ st.text(perfil.get("musicas", ""))
 
 fotos = perfil.get("fotos", "")
 if isinstance(fotos, str) and fotos.strip():
-    lista_links = [link.strip() for link in fotos.split(";") if link.strip()]
+    lista_links = [link.strip() for link in fotos.split(",") if link.strip()]
     st.info("Fotos enviadas:")
     cols = st.columns(3)
     for i, link in enumerate(lista_links):
@@ -119,13 +120,17 @@ if isinstance(fotos, str) and fotos.strip():
 else:
     st.write("Sem fotos para mostrar.")
 
+st.session_state["perfil_para_curtir"] = perfil["login"]
+
 col1, col2 = st.columns(2)
 with col1:
-    if st.button("💖 Curtir"):
-        likes_ws.append_row([usuario, perfil["login"]])
-        st.experimental_memo.clear()  # limpa cache para recarregar likes atualizado
-        st.rerun()
+    if st.button("💖 Curtir", key="curtir"):
+        perfil_para_curtir = st.session_state.get("perfil_para_curtir")
+        if perfil_para_curtir:
+            likes_ws.append_row([usuario, perfil_para_curtir])
+            st.cache_data.clear()  # limpa cache para forçar recarregar dados
+            st.experimental_rerun()
 
 with col2:
-    if st.button("⏩ Pular"):
-        st.rerun()
+    if st.button("⏩ Pular", key="pular"):
+        st.experimental_rerun()
