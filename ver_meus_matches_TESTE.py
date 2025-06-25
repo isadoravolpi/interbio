@@ -22,7 +22,7 @@ def drive_link_para_visualizacao(link):
     return link
 
 # Interface
-st.title("💍 Veja seus Matches - TINDER DA CEÓ")
+st.title("💍MATCHES DA CEÓ")
 
 usuario = st.text_input("Digite seu nome de login privado (igual cadastrado)")
 if not usuario:
