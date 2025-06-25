@@ -35,20 +35,23 @@ usuario = st.text_input("Digite seu login privado")
 if not usuario:
     st.stop()
 
-# Carrega perfis
-perfis_data = perfis_ws.get_all_records(default_blank="")
-if not perfis_data:
+# Carrega perfis com tratamento de erro
+valores = perfis_ws.get_all_values()
+if not valores:
     st.warning("Nenhum perfil cadastrado ainda.")
     st.stop()
 
-df = pd.DataFrame(perfis_data)
+cabecalho, dados = valores[0], valores[1:]
+df = pd.DataFrame(dados, columns=cabecalho)
+df = df.replace("", pd.NA).dropna(how="all")
 df.columns = df.columns.str.strip()
 
 if "login" not in df.columns:
     st.error("A aba 'perfis' precisa da coluna 'login'.")
     st.stop()
 
-df = df[df["login"] != usuario]  # remove o próprio perfil
+# Remove o próprio perfil
+df = df[df["login"] != usuario]
 
 # Carrega likes
 likes_data = likes_ws.get_all_records()
