@@ -70,3 +70,19 @@ for p1, p2 in matches:
 # Salva CSV
 pd.DataFrame(match_info).to_csv("matches_completos.csv", index=False)
 st.success("Arquivo 'matches_completos.csv' criado com sucesso!")
+
+# Cria ou atualiza a aba "matches"
+try:
+    matches_ws = sheet.worksheet("matches")
+    sheet.del_worksheet(matches_ws)
+except:
+    pass
+
+matches_ws = sheet.add_worksheet(title="matches", rows="1000", cols="10")
+
+# Salva na aba "matches"
+matches_df = pd.DataFrame(match_info)
+matches_ws.update([matches_df.columns.values.tolist()] + matches_df.values.tolist())
+
+st.success("Aba 'matches' atualizada com sucesso na planilha!")
+
