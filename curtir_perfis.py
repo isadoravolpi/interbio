@@ -130,27 +130,27 @@ else:
 col1, col2 = st.columns(2)
 with col1:
     if st.button("💖 Curtir"):
-    # Recarrega diretamente da planilha para garantir dados atualizados
-    likes_atualizados = likes_ws.get_all_records()
-    df_likes = pd.DataFrame(likes_atualizados)
-    df_likes.columns = df_likes.columns.str.strip()
+        # Recarrega diretamente da planilha para garantir dados atualizados
+        likes_atualizados = likes_ws.get_all_records()
+        df_likes = pd.DataFrame(likes_atualizados)
+        df_likes.columns = df_likes.columns.str.strip()
 
-    # Verifica se like já existe
-    ja_curtiu = (
-        not df_likes[
-            (df_likes["quem_curtiu"] == usuario) & 
-            (df_likes["quem_foi_curtido"] == perfil["login"])
-        ].empty
-    )
+        # Verifica se like já existe
+        ja_curtiu = (
+            not df_likes[
+                (df_likes["quem_curtiu"] == usuario) & 
+                (df_likes["quem_foi_curtido"] == perfil["login"])
+            ].empty
+        )
 
-    if ja_curtiu:
-        st.warning("Você já curtiu esse perfil.")
-    else:
-        likes_ws.append_row([usuario, perfil["login"]])
-        st.success("Curtida registrada com sucesso 💘")
+        if ja_curtiu:
+            st.warning("Você já curtiu esse perfil.")
+        else:
+            likes_ws.append_row([usuario, perfil["login"]])
+            st.success("Curtida registrada com sucesso 💘")
 
-    del st.session_state.perfil_atual
-    st.rerun()
+        del st.session_state.perfil_atual
+        st.rerun()
 
 with col2:
     if st.button("⏩ Pular"):
