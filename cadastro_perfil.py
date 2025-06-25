@@ -39,18 +39,23 @@ PASTA_DRIVE_ID = "1HXgLg-DiC_kjjQ7UFqzwFLeeR_cqgdA3"
 # Nome da planilha
 PLANILHA = "TINDER_CEO_PERFIS"
 
-# Abrir planilha e aba "perfis"
-try:
-    sheet = client.open(PLANILHA)
-except Exception as e:
-    st.error(f"Erro ao abrir a planilha: {e}")
-    st.stop()
+@st.cache_resource
+def abrir_aba_perfis():
+    try:
+        sheet = client.open(PLANILHA)
+    except Exception as e:
+        st.error(f"Erro ao abrir a planilha: {e}")
+        st.stop()
 
-try:
-    aba = sheet.worksheet("perfis")
-except gspread.exceptions.WorksheetNotFound:
-    aba = sheet.add_worksheet(title="perfis", rows="1000", cols="10")
-    aba.append_row(["login", "nome_publico", "contato", "descricao", "musicas", "fotos"])
+    try:
+        aba = sheet.worksheet("perfis")
+    except gspread.exceptions.WorksheetNotFound:
+        aba = sheet.add_worksheet(title="perfis", rows="1000", cols="10")
+        aba.append_row(["login", "nome_publico", "contato", "descricao", "musicas", "fotos"])
+    return aba
+
+# Carrega aba com cache
+aba = abrir_aba_perfis()
 
 # ------------------- INTERFACE ----------------------
 
