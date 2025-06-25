@@ -100,7 +100,7 @@ if isinstance(fotos, str) and fotos.strip():
     for i, link in enumerate(lista_links):
         img_url = drive_link_para_visualizacao(link)
         with cols[i % 3]:
-            st.image(img_url, use_column_width=True)
+            st.image(img_url, use_container_width=True)
 else:
     st.write("Sem fotos para mostrar.")
 
