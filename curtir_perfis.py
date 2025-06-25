@@ -72,19 +72,14 @@ st.text(perfil.get("descricao", ""))
 st.markdown("🎵 **Músicas do set:**")
 st.text(perfil.get("musicas", ""))
 
-# Debug do campo fotos
+# Exibe as fotos, separando pelo ponto e vírgula ';'
 fotos = perfil.get("fotos", "")
-st.write("Conteúdo bruto do campo 'fotos':", repr(fotos))
-
 if isinstance(fotos, str) and fotos.strip():
-    lista_links = [link.strip() for link in fotos.split(",") if link.strip()]
-    st.write("Links após split:", lista_links)
-
+    lista_links = [link.strip() for link in fotos.split(";") if link.strip()]
     st.info("Fotos enviadas:")
     cols = st.columns(3)
     for i, link in enumerate(lista_links):
         with cols[i % 3]:
-            st.write(f"Exibindo link {i}: {link}")
             if link.startswith("http"):
                 st.image(link, use_container_width=True)
             else:
