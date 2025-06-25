@@ -51,11 +51,12 @@ else:
     likes = pd.DataFrame(likes_data)
     likes.columns = likes.columns.str.strip()
 
+# Proteção contra falta de colunas
 if not set(["quem_curtiu", "quem_foi_curtido"]).issubset(likes.columns):
     st.error("A aba 'likes' precisa das colunas 'quem_curtiu' e 'quem_foi_curtido'.")
     st.stop()
 
-# Remove perfis já curtidos pelo usuário atual
+# Remove perfis já curtidos
 ja_curtiu = likes[likes["quem_curtiu"] == usuario]["quem_foi_curtido"].tolist()
 df_restantes = df[~df["login"].isin(ja_curtiu)]
 
@@ -71,18 +72,20 @@ st.text(perfil.get("descricao", ""))
 st.markdown("🎵 **Músicas do set:**")
 st.text(perfil.get("musicas", ""))
 
-# Mostrar fotos com links separados por ';'
+# 📸 Mostra as fotos em grade 3 colunas, separando por vírgula
 fotos = perfil.get("fotos", "")
 if isinstance(fotos, str) and fotos.strip():
     st.info("Fotos enviadas:")
-    for link in fotos.split(";"):
-        link = link.strip()
-        if link.startswith("http"):
-            st.image(link, use_column_width=True)
-        else:
-            st.write(link)
+    lista_links = [link.strip() for link in fotos.split(",") if link.strip()]
+    cols = st.columns(3)
+    for i, link in enumerate(lista_links):
+        with cols[i % 3]:
+            if link.startswith("http"):
+                st.image(link, use_container_width=True)
+            else:
+                st.write(link)
 
-# Botões de ação lado a lado
+# Botões de ação
 col1, col2 = st.columns(2)
 with col1:
     if st.button("💖 Curtir"):
