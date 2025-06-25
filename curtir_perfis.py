@@ -43,6 +43,7 @@ def drive_link_para_visualizacao(link):
 
 # --- Início do app ---
 
+st.image("logo_besouro.png", width=400)
 st.title("💖 Curtir Perfis - TINDER DA CEÓ")
 
 usuario = st.text_input("Digite seu login privado")
