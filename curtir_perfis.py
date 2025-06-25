@@ -4,7 +4,7 @@ import pandas as pd
 import time
 from oauth2client.service_account import ServiceAccountCredentials
 
-# Autenticação com Google Sheets
+# --- Autenticação com Google Sheets ---
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds_dict = st.secrets["gcp_service_account"]
 creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(creds_dict), scope)
@@ -38,6 +38,28 @@ def drive_link_para_visualizacao(link):
         return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
     return link
 
+# Cache para carregar perfis da planilha por 60 segundos
+@st.cache_data(ttl=60)
+def carregar_perfis():
+    valores = perfis_ws.get_all_values()
+    if not valores:
+        return pd.DataFrame()
+    cabecalho, dados = valores[0], valores[1:]
+    df = pd.DataFrame(dados, columns=cabecalho)
+    df = df.replace("", pd.NA).dropna(how="all")
+    df.columns = df.columns.str.strip()
+    return df
+
+# Cache para carregar likes da planilha por 60 segundos
+@st.cache_data(ttl=60)
+def carregar_likes():
+    likes_data = likes_ws.get_all_records()
+    if not likes_data:
+        return pd.DataFrame(columns=["quem_curtiu", "quem_foi_curtido"])
+    df_likes = pd.DataFrame(likes_data)
+    df_likes.columns = df_likes.columns.str.strip()
+    return df_likes
+
 # Interface
 st.title("💘LIKES DA CEÓ")
 
@@ -45,37 +67,22 @@ usuario = st.text_input("Digite seu login privado")
 if not usuario:
     st.stop()
 
-# Carrega perfis
-valores = perfis_ws.get_all_values()
-if not valores:
+df = carregar_perfis()
+if df.empty:
     st.warning("Nenhum perfil cadastrado ainda.")
     st.stop()
-
-cabecalho, dados = valores[0], valores[1:]
-df = pd.DataFrame(dados, columns=cabecalho)
-df = df.replace("", pd.NA).dropna(how="all")
-df.columns = df.columns.str.strip()
 
 if "login" not in df.columns:
     st.error("A aba 'perfis' precisa da coluna 'login'.")
     st.stop()
 
-# Remove o próprio perfil
 df = df[df["login"] != usuario]
 
-# Carrega likes
-likes_data = likes_ws.get_all_records()
-if not likes_data:
-    likes = pd.DataFrame(columns=["quem_curtiu", "quem_foi_curtido"])
-else:
-    likes = pd.DataFrame(likes_data)
-    likes.columns = likes.columns.str.strip()
-
+likes = carregar_likes()
 if not set(["quem_curtiu", "quem_foi_curtido"]).issubset(likes.columns):
     st.error("A aba 'likes' precisa das colunas 'quem_curtiu' e 'quem_foi_curtido'.")
     st.stop()
 
-# Remove perfis já curtidos
 ja_curtiu = likes[likes["quem_curtiu"] == usuario]["quem_foi_curtido"].tolist()
 
 if "ultimo_login" not in st.session_state:
@@ -89,7 +96,6 @@ if df_restantes.empty:
     st.success("Você já viu todos os perfis disponíveis! Agora é só esperar os matches 🥰")
     st.stop()
 
-# Seleciona um perfil aleatório
 perfil = df_restantes.sample(1).iloc[0]
 st.session_state.ultimo_login = perfil["login"]
 
@@ -98,7 +104,6 @@ st.text(perfil.get("descricao", ""))
 st.markdown("🎵 **Músicas do set:**")
 st.text(perfil.get("musicas", ""))
 
-# Exibe fotos
 fotos = perfil.get("fotos", "")
 if isinstance(fotos, str) and fotos.strip():
     lista_links = [link.strip() for link in fotos.split(";") if link.strip()]
@@ -114,11 +119,11 @@ if isinstance(fotos, str) and fotos.strip():
 else:
     st.write("Sem fotos para mostrar.")
 
-# Botões de ação
 col1, col2 = st.columns(2)
 with col1:
     if st.button("💖 Curtir"):
         likes_ws.append_row([usuario, perfil["login"]])
+        st.experimental_memo.clear()  # limpa cache para recarregar likes atualizado
         st.rerun()
 
 with col2:
