@@ -1,62 +1,56 @@
 import streamlit as st
-import os
-import pandas as pd
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
-# Caminhos para salvar dados e fotos
-PERFIS_CSV = "perfis.csv"
-FOTOS_DIR = "fotos"
+# --- Escopo de acesso para Google Sheets e Drive ---
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-# Cria diretórios se não existirem
-os.makedirs(FOTOS_DIR, exist_ok=True)
+# --- Autenticação via st.secrets (Streamlit Cloud) ---
+creds_dict = st.secrets["gcp_service_account"]
+creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(creds_dict), scope)
+client = gspread.authorize(creds)
 
-# Layout
-col1, col2, col3 = st.columns([1, 3, 1])
-with col2:
-    st.image("logo_besouro.png", width=400)
-    st.title("TINDER DA CEÓ 💖")
+# --- Nome da planilha exata ---
+PLANILHA = "TINDER_CEO_PERFIS"
 
-# Inputs do usuário
-login = st.text_input("Crie um nome de login privado (será usado depois para logar)")
+try:
+    sheet = client.open(PLANILHA)
+except Exception as e:
+    st.error(f"Erro ao abrir a planilha: {e}")
+    st.stop()
+
+# Tenta abrir aba "perfis" ou cria se não existir
+try:
+    aba = sheet.worksheet("perfis")
+except gspread.exceptions.WorksheetNotFound:
+    aba = sheet.add_worksheet(title="perfis", rows="1000", cols="10")
+    aba.append_row(["login", "nome_publico", "contato", "descricao", "musicas", "fotos"])
+
+st.title("Cadastro - TINDER DA CEÓ 💖")
+
+login = st.text_input("Login privado (único)")
 nome_publico = st.text_input("Nome/apelido")
-contato = st.text_input("Seu contato (e-mail, Instagram, etc.)")
-descricao = st.text_area("3 palavras (ou mais) sobre você")
-musicas = st.text_area("Músicas que tocariam no seu set")
-fotos = st.file_uploader("Envie até 5 fotos", type=["png", "jpg", "jpeg"], accept_multiple_files=True)
+contato = st.text_input("Instagram, e-mail ou outro contato")
+descricao = st.text_area("Fale um pouco sobre você")
+musicas = st.text_area("Músicas favoritas")
+fotos = st.file_uploader("Envie até 5 fotos (não serão salvas agora)", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
-# Botão de envio
 if st.button("Enviar"):
     if not all([login, nome_publico, contato, descricao, musicas]) or not fotos:
-        st.warning("Preencha todos os campos e envie ao menos uma foto.")
+        st.warning("Preencha todos os campos e envie pelo menos uma foto.")
         st.stop()
 
-    # Nomeia fotos com base no login
-    nomes_fotos = []
-    for i, foto in enumerate(fotos):
-        nome_arquivo = f"{login}_{i+1}.jpg"
-        caminho_foto = os.path.join(FOTOS_DIR, nome_arquivo)
-        with open(caminho_foto, "wb") as f:
-            f.write(foto.read())
-        nomes_fotos.append(nome_arquivo)
+    nomes_fotos = [f"{login}_{i+1}.jpg" for i in range(len(fotos))]
 
-    # Carrega o CSV existente ou cria novo
-    if os.path.exists(PERFIS_CSV):
-        perfis_df = pd.read_csv(PERFIS_CSV)
-        if login in perfis_df["login"].values:
-            st.error("Esse login já existe! Escolha outro.")
-            st.stop()
-    else:
-        perfis_df = pd.DataFrame(columns=["login", "nome_publico", "contato", "descricao", "musicas", "fotos"])
+    # Verifica se login já existe
+    existentes = aba.col_values(1)
+    if login in existentes:
+        st.error("Esse login já foi usado. Tente outro.")
+        st.stop()
 
-    # Salva os dados
-    novo_perfil = pd.DataFrame([{
-        "login": login,
-        "nome_publico": nome_publico,
-        "contato": contato,
-        "descricao": descricao,
-        "musicas": musicas,
-        "fotos": ";".join(nomes_fotos)
-    }])
-    perfis_df = pd.concat([perfis_df, novo_perfil], ignore_index=True)
-    perfis_df.to_csv(PERFIS_CSV, index=False)
+    # Adiciona nova linha na planilha
+    nova_linha = [login, nome_publico, contato, descricao, musicas, ";".join(nomes_fotos)]
+    aba.append_row(nova_linha)
 
-    st.success("Perfil enviado com sucesso! 💕")
+    st.success("Cadastro enviado com sucesso para a planilha Google! ✅")
+
