@@ -1,6 +1,7 @@
 import streamlit as st
 import gspread
 import pandas as pd
+import time
 from oauth2client.service_account import ServiceAccountCredentials
 
 # Autenticação com Google Sheets
@@ -9,9 +10,18 @@ creds_dict = st.secrets["gcp_service_account"]
 creds = ServiceAccountCredentials.from_json_keyfile_dict(dict(creds_dict), scope)
 client = gspread.authorize(creds)
 
-# Acessa a planilha principal
 PLANILHA = "TINDER_CEO_PERFIS"
-sheet = client.open(PLANILHA)
+
+# Tenta abrir a planilha com retry
+for tentativa in range(3):
+    try:
+        sheet = client.open(PLANILHA)
+        break
+    except gspread.exceptions.APIError as e:
+        if tentativa == 2:
+            st.error("Erro ao conectar com o Google Sheets. Tente novamente em instantes.")
+            st.stop()
+        time.sleep(1.5)
 
 # Abas
 perfis_ws = sheet.worksheet("perfis")
@@ -35,7 +45,7 @@ usuario = st.text_input("Digite seu login privado")
 if not usuario:
     st.stop()
 
-# Carrega perfis com tratamento de erro
+# Carrega perfis
 valores = perfis_ws.get_all_values()
 if not valores:
     st.warning("Nenhum perfil cadastrado ainda.")
@@ -61,14 +71,19 @@ else:
     likes = pd.DataFrame(likes_data)
     likes.columns = likes.columns.str.strip()
 
-# Proteção contra falta de colunas
 if not set(["quem_curtiu", "quem_foi_curtido"]).issubset(likes.columns):
     st.error("A aba 'likes' precisa das colunas 'quem_curtiu' e 'quem_foi_curtido'.")
     st.stop()
 
 # Remove perfis já curtidos
 ja_curtiu = likes[likes["quem_curtiu"] == usuario]["quem_foi_curtido"].tolist()
+
+if "ultimo_login" not in st.session_state:
+    st.session_state.ultimo_login = None
+
 df_restantes = df[~df["login"].isin(ja_curtiu)]
+if st.session_state.ultimo_login:
+    df_restantes = df_restantes[df_restantes["login"] != st.session_state.ultimo_login]
 
 if df_restantes.empty:
     st.success("Você já viu todos os perfis disponíveis! Agora é só esperar os matches 🥰")
@@ -76,6 +91,7 @@ if df_restantes.empty:
 
 # Seleciona um perfil aleatório
 perfil = df_restantes.sample(1).iloc[0]
+st.session_state.ultimo_login = perfil["login"]
 
 st.subheader(perfil.get("nome_publico", "Nome não informado"))
 st.text(perfil.get("descricao", ""))
