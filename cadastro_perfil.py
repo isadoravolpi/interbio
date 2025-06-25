@@ -1,5 +1,6 @@
 import streamlit as st
 import gspread
+import tempfile
 from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -44,13 +45,13 @@ descricao = st.text_area("3 palavras (ou mais) sobre você")
 musicas = st.text_area("Músicas que tocariam no seu set")
 fotos = st.file_uploader("Envie até 5 fotos", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
-# --- Pré-visualização das fotos em grade ---
+# --- Pré-visualização das fotos em grade (3 colunas) ---
 if fotos:
     st.subheader("Pré-visualização das fotos:")
     cols = st.columns(3)
     for i, f in enumerate(fotos):
         with cols[i % 3]:
-            st.image(f, use_container_width=True)
+            st.image(f, use_column_width=True)
 
 # --- Botão de envio ---
 if st.button("Enviar"):
@@ -67,13 +68,17 @@ if st.button("Enviar"):
     links_fotos = []
     for i, f in enumerate(fotos):
         nome_arquivo = f"{login}_{i+1}.jpg"
+
+        # Salva imagem em arquivo temporário
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+            tmp.write(f.getvalue())
+            tmp_path = tmp.name
+
         arquivo_drive = drive.CreateFile({
             "title": nome_arquivo,
             "parents": [{"id": PASTA_ID}]
         })
-
-        # Upload direto da memória
-        arquivo_drive.SetContentBytes(f.getbuffer())
+        arquivo_drive.SetContentFile(tmp_path)
         arquivo_drive.Upload()
 
         # Permissão pública
@@ -83,6 +88,7 @@ if st.button("Enviar"):
             "role": "reader"
         })
 
+        # Link direto para usar no app
         link_publico = f"https://drive.google.com/uc?id={arquivo_drive['id']}"
         links_fotos.append(link_publico)
 
