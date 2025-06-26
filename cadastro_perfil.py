@@ -104,32 +104,52 @@ if st.button("Enviar"):
     links_fotos = []
 
     try:
-        for f, nome_arquivo in zip(fotos, nomes_fotos):
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+    for f, nome_arquivo in zip(fotos, nomes_fotos):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
             tmp.write(f.read())
             tmp.flush()
 
             file_metadata = {
-            'name': nome_arquivo,
-            'parents': [PASTA_DRIVE_ID]
+                'name': nome_arquivo,
+                'parents': [PASTA_DRIVE_ID]
             }
             media = MediaFileUpload(tmp.name, mimetype='image/jpeg')
             uploaded_file = drive_service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id'
+                body=file_metadata,
+                media_body=media,
+                fields='id'
             ).execute()
 
-           # 🔓 Deixa a imagem pública
+            # 🔓 Deixa a imagem pública
             file_id = uploaded_file.get('id')
             drive_service.permissions().create(
-            fileId=file_id,
-            body={"role": "reader", "type": "anyone"},
-            fields="id"
+                fileId=file_id,
+                body={"role": "reader", "type": "anyone"},
+                fields="id"
             ).execute()
 
             link = f"https://drive.google.com/uc?export=view&id={file_id}"
             links_fotos.append(link)
+
+    nova_linha = [
+        login,
+        nome_publico,
+        contato,
+        descricao,
+        musicas,
+        ",".join(links_fotos)
+    ]
+    aba.append_row(nova_linha)
+    st.success("Cadastro enviado com sucesso! ✅")
+
+except (ssl.SSLEOFError, ssl.SSLError, socket.error, httplib2.SSLHandshakeError):
+    st.error("⚠️ Erro temporário de conexão segura (SSL). Recarregue a página e tente novamente.")
+    st.stop()
+
+except Exception as e:
+    st.error(f"Erro inesperado: {e}")
+    st.stop()
+
 
 
         nova_linha = [
