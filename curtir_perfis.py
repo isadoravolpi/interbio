@@ -178,9 +178,13 @@ if isinstance(fotos, str) and fotos.strip():
         img_url = drive_link_para_visualizacao(link)
         with cols[i % 3]:
             st.markdown(
-                f'<img src="{img_url}" style="width:100%; border-radius: 10px; margin-bottom:10px;">',
-                unsafe_allow_html=True
-            )
+    f'''
+    <img src="{img_url}" 
+         style="max-width: 100%; height: auto; border-radius: 10px; margin-bottom:10px; display: block; margin-left: auto; margin-right: auto;">
+    ''',
+    unsafe_allow_html=True
+)
+
 else:
     st.write("Sem fotos para mostrar.")
 
