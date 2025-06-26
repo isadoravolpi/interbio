@@ -64,7 +64,7 @@ st.title("TINDER DA CEÓ 💖")
 
 login = st.text_input("Login privado (será usado depois)")
 nome_publico = st.text_input("Nome/apelido")
-contato = st.text_input("Instagram, e-mail...")
+contato = st.text_input("WPP, Instagram...")
 descricao = st.text_area("3 palavras (ou mais) sobre você")
 musicas = st.text_area("Músicas que tocariam no seu set")
 fotos = st.file_uploader(
