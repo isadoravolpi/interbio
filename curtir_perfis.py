@@ -5,7 +5,7 @@ import random
 import time
 from google.oauth2.service_account import Credentials
 
-# Autenticação
+# --- AUTENTICAÇÃO ---
 scope = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
@@ -14,31 +14,23 @@ creds_dict = st.secrets["gcp_service_account"]
 creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
 client = gspread.authorize(creds)
 
-# Nome da planilha
+# --- NOME DA PLANILHA ---
 PLANILHA = "TINDER_CEO_PERFIS"
 
-# Carrega planilha (sem cache)
-@st.cache_data(ttl=15)
+# --- ABRINDO PLANILHA (sem cache) ---
 def carregar_sheet():
     for tentativa in range(3):
         try:
             return client.open(PLANILHA)
-        except Exception as e:
+        except Exception:
             if tentativa == 2:
-                st.error(f"Erro ao abrir planilha: {e}")
+                st.error("Erro ao conectar ao Google Sheets. Tente novamente.")
                 st.stop()
             time.sleep(1.5)
 
 sheet = carregar_sheet()
 
-# Acessa abas
-try:
-    perfis_ws = sheet.worksheet("perfis")
-except Exception as e:
-    st.error(f"Erro ao abrir a aba 'perfis': {e}")
-    st.stop()
-
-# Abas likes e passados
+# --- GARANTINDO EXISTÊNCIA DAS ABAS (sem cache) ---
 def garantir_aba(nome, colunas):
     try:
         ws = sheet.worksheet(nome)
@@ -47,10 +39,24 @@ def garantir_aba(nome, colunas):
         ws.append_row(colunas)
     return ws
 
+perfis_ws = garantir_aba("perfis", [])  # colunas não necessárias aqui
 likes_ws = garantir_aba("likes", ["quem_curtiu", "quem_foi_curtido"])
 passados_ws = garantir_aba("passados", ["quem_passou", "quem_foi_passado"])
 
-# Função de link do drive
+# --- FUNÇÕES PARA CARREGAR DADOS DAS ABAS (com cache) ---
+@st.cache_data(ttl=15)
+def carregar_perfis(ws):
+    return ws.get_all_values()
+
+@st.cache_data(ttl=15)
+def carregar_likes(ws):
+    return ws.get_all_records()
+
+@st.cache_data(ttl=15)
+def carregar_passados(ws):
+    return ws.get_all_records()
+
+# --- FUNÇÃO PARA FORMATAR LINK DRIVE ---
 def drive_link_para_visualizacao(link):
     if "id=" in link:
         file_id = link.split("id=")[-1]
@@ -60,15 +66,16 @@ def drive_link_para_visualizacao(link):
         return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
     return link
 
-# App principal
+# --- INÍCIO DO APP ---
 st.image("logo_besouro.png", width=400)
 st.title("💘 LIKES DA CEÓ")
+
 usuario = st.text_input("Digite seu login privado")
 if not usuario:
     st.stop()
 
-# Dados dos perfis
-valores = perfis_ws.get_all_values()
+# --- CARREGAR DADOS ---
+valores = carregar_perfis(perfis_ws)
 if not valores:
     st.warning("Nenhum perfil cadastrado ainda.")
     st.stop()
@@ -83,27 +90,24 @@ if "login" not in df.columns:
 
 df = df[df["login"] != usuario]
 
-# Dados de likes e passados
-likes_data = likes_ws.get_all_records()
+likes_data = carregar_likes(likes_ws)
 likes = pd.DataFrame(likes_data) if likes_data else pd.DataFrame(columns=["quem_curtiu", "quem_foi_curtido"])
 likes.columns = likes.columns.str.strip()
 
-passados_data = passados_ws.get_all_records()
+passados_data = carregar_passados(passados_ws)
 passados = pd.DataFrame(passados_data) if passados_data else pd.DataFrame(columns=["quem_passou", "quem_foi_passado"])
 passados.columns = passados.columns.str.strip()
-
 
 ja_curtiu = likes[likes["quem_curtiu"] == usuario]["quem_foi_curtido"].tolist()
 ja_passou = passados[passados["quem_passou"] == usuario]["quem_foi_passado"].tolist()
 
-# Excluir perfis já vistos
 df_restantes = df[~df["login"].isin(ja_curtiu + ja_passou)]
 
 if df_restantes.empty:
     st.success("Você já viu todos os perfis disponíveis! Agora é só esperar os matches 🥰")
     st.stop()
 
-# Sorteia perfil atual
+# --- ESCOLHER PERFIL ---
 if "perfil_atual" not in st.session_state:
     perfis_possiveis = df_restantes.to_dict("records")
     random.shuffle(perfis_possiveis)
@@ -111,7 +115,7 @@ if "perfil_atual" not in st.session_state:
 
 perfil = st.session_state.perfil_atual
 
-# Exibição do perfil
+# --- EXIBIÇÃO DO PERFIL ---
 st.subheader(perfil.get("nome_publico", "Nome não informado"))
 st.text(perfil.get("descricao", ""))
 st.markdown("🎵 **Músicas do set:**")
@@ -132,7 +136,7 @@ if isinstance(fotos, str) and fotos.strip():
 else:
     st.write("Sem fotos para mostrar.")
 
-# Botões de ação
+# --- BOTÕES ---
 col1, col2 = st.columns(2)
 
 with col1:
