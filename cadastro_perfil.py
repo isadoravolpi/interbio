@@ -122,11 +122,14 @@ if st.button("Enviar"):
 
             # 🔓 Deixa a imagem pública
             file_id = uploaded_file.get('id')
-            drive_service.permissions().create(
-                fileId=file_id,
-                body={"role": "reader", "type": "anyone"},
-                fields="id"
-            ).execute()
+            try:
+    drive_service.permissions().create(
+        fileId=file_id,
+        body={"role": "reader", "type": "anyone"},
+        fields="id"
+    ).execute()
+except Exception as e:
+    st.warning(f"Erro ao tornar imagem pública: {e}")
 
             link = f"https://drive.google.com/uc?export=view&id={file_id}"
             links_fotos.append(link)
