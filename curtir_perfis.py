@@ -50,13 +50,19 @@ passados_ws = garantir_aba("passados", ["quem_passou", "quem_foi_passado"])
 
 # Função de link do drive
 def drive_link_para_visualizacao(link):
-    if "id=" in link:
-        file_id = link.split("id=")[-1].split("&")[0]
-    elif "file/d/" in link:
-        file_id = link.split("file/d/")[-1].split("/")[0]
-    else:
-        return link
-    return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
+    import re
+
+    # Extrai o ID do link, qualquer que seja o formato
+    match = re.search(r'id=([a-zA-Z0-9_-]+)', link)
+    if not match:
+        match = re.search(r'/d/([a-zA-Z0-9_-]+)', link)
+    if not match:
+        return link  # retorna original se não encontrar nada
+
+    file_id = match.group(1)
+
+    # Volta ao formato uc?export=view que funciona em todos dispositivos
+    return f"https://drive.google.com/uc?export=view&id={file_id}"
 
 
 # Funções para carregar dados da planilha (sem cache)
