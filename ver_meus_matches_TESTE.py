@@ -48,12 +48,12 @@ for _, row in meus_matches.iterrows():
     st.subheader(f"{row['match_nome_publico']} 💖")
     st.text(f"Contato: {row['contato']}")
     st.text(f"Descrição: {row['descricao']}")
-    st.markdown("🎵 **Músicas favoritas:**")
+    st.markdown("🎵 **SET:**")
     st.text(row["musicas"])
 
     fotos = [f.strip() for f in row["fotos"].split(",") if f.strip().startswith("http")]
     if fotos:
-        st.markdown("📸 **Fotos do match:**")
+        st.markdown("📸 **Fotos:**")
         cols = st.columns(3)
         for i, link in enumerate(fotos):
             with cols[i % 3]:
