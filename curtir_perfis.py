@@ -82,11 +82,14 @@ if "login" not in df.columns:
 df = df[df["login"] != usuario]
 
 # Dados de likes e passados
-likes = pd.DataFrame(likes_ws.get_all_records())
+likes_data = likes_ws.get_all_records()
+likes = pd.DataFrame(likes_data) if likes_data else pd.DataFrame(columns=["quem_curtiu", "quem_foi_curtido"])
 likes.columns = likes.columns.str.strip()
 
-passados = pd.DataFrame(passados_ws.get_all_records())
+passados_data = passados_ws.get_all_records()
+passados = pd.DataFrame(passados_data) if passados_data else pd.DataFrame(columns=["quem_passou", "quem_foi_passado"])
 passados.columns = passados.columns.str.strip()
+
 
 ja_curtiu = likes[likes["quem_curtiu"] == usuario]["quem_foi_curtido"].tolist()
 ja_passou = passados[passados["quem_passou"] == usuario]["quem_foi_passado"].tolist()
