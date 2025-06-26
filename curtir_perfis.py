@@ -5,18 +5,19 @@ import time
 import random
 from google.oauth2.service_account import Credentials
 
-# Autenticação Google
-scope = ["https://www.googleapis.com/auth/spreadsheets",
-         "https://www.googleapis.com/auth/drive"]
+scope = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
 
 creds_dict = st.secrets["gcp_service_account"]
 creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
+
 client = gspread.authorize(creds)
 
-# Nome da planilha
 PLANILHA = "TINDER_CEO_PERFIS"
 
-# Não usar cache, para evitar erro de reconexão
+@st.cache_data(ttl=30)
 def carregar_sheet():
     for tentativa in range(3):
         try:
@@ -29,21 +30,24 @@ def carregar_sheet():
 
 sheet = carregar_sheet()
 
-# Acessa aba "perfis"
 try:
     perfis_ws = sheet.worksheet("perfis")
 except Exception as e:
-    st.error(f"Erro ao acessar aba 'perfis': {e}")
+    st.error(f"Erro ao abrir a aba 'perfis': {e}")
     st.stop()
 
-# Acessa ou cria aba "likes"
 try:
     likes_ws = sheet.worksheet("likes")
 except gspread.exceptions.WorksheetNotFound:
     likes_ws = sheet.add_worksheet(title="likes", rows="1000", cols="5")
     likes_ws.append_row(["quem_curtiu", "quem_foi_curtido"])
 
-# Converte link Drive para thumbnail
+try:
+    passados_ws = sheet.worksheet("passados")
+except gspread.exceptions.WorksheetNotFound:
+    passados_ws = sheet.add_worksheet(title="passados", rows="1000", cols="5")
+    passados_ws.append_row(["quem_passou", "quem_foi_passado"])
+
 def drive_link_para_visualizacao(link):
     if "id=" in link:
         file_id = link.split("id=")[-1]
@@ -53,8 +57,7 @@ def drive_link_para_visualizacao(link):
         return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
     return link
 
-# App
-st.title("💘LIKES DA CEÓ")
+st.title("💘 LIKES DA CEÓ")
 
 usuario = st.text_input("Digite seu login privado")
 if not usuario:
@@ -76,36 +79,37 @@ if "login" not in df.columns:
 
 df = df[df["login"] != usuario]
 
-# Carrega curtidas
 likes_data = likes_ws.get_all_records()
 likes = pd.DataFrame(likes_data) if likes_data else pd.DataFrame(columns=["quem_curtiu", "quem_foi_curtido"])
-likes.columns = [str(col).strip() for col in likes.columns]
+likes.columns = likes.columns.str.strip()
+
+passados_data = passados_ws.get_all_records()
+passados = pd.DataFrame(passados_data) if passados_data else pd.DataFrame(columns=["quem_passou", "quem_foi_passado"])
+passados.columns = passados.columns.str.strip()
 
 if not set(["quem_curtiu", "quem_foi_curtido"]).issubset(likes.columns):
     st.error("A aba 'likes' precisa das colunas 'quem_curtiu' e 'quem_foi_curtido'.")
     st.stop()
 
-ja_curtiu = likes[likes["quem_curtiu"] == usuario]["quem_foi_curtido"].tolist()
-df_restantes = df[~df["login"].isin(ja_curtiu)]
+if not set(["quem_passou", "quem_foi_passado"]).issubset(passados.columns):
+    st.error("A aba 'passados' precisa das colunas 'quem_passou' e 'quem_foi_passado'.")
+    st.stop()
+
+ja_vistos = set(
+    likes[likes["quem_curtiu"] == usuario]["quem_foi_curtido"].tolist() +
+    passados[passados["quem_passou"] == usuario]["quem_foi_passado"].tolist()
+)
+
+df_restantes = df[~df["login"].isin(ja_vistos)]
+
+if df_restantes.empty:
+    st.success("Você já viu todos os perfis disponíveis! Agora é só esperar os matches 🥰")
+    st.stop()
 
 if "perfil_atual" not in st.session_state:
-    if df_restantes.empty:
-        st.success("Você já viu todos os perfis disponíveis! Agora é só esperar os matches 🥰")
-        st.stop()
-
     perfis_possiveis = df_restantes.to_dict("records")
     random.shuffle(perfis_possiveis)
-
-    for p in perfis_possiveis:
-        if not likes[
-            (likes["quem_curtiu"] == usuario) & (likes["quem_foi_curtido"] == p["login"])
-        ].empty:
-            continue
-        st.session_state.perfil_atual = p
-        break
-    else:
-        st.success("Você já curtiu todos os perfis disponíveis!")
-        st.stop()
+    st.session_state.perfil_atual = perfis_possiveis[0]
 
 perfil = st.session_state.perfil_atual
 
@@ -130,16 +134,12 @@ else:
     st.write("Sem fotos para mostrar.")
 
 col1, col2 = st.columns(2)
+
 with col1:
     if st.button("💖 Curtir"):
         likes_atualizados = likes_ws.get_all_records()
-        
-        if likes_atualizados:
-            df_likes = pd.DataFrame(likes_atualizados)
-        else:
-            df_likes = pd.DataFrame(columns=["quem_curtiu", "quem_foi_curtido"])
-
-        df_likes.columns = [str(col).strip() for col in df_likes.columns]
+        df_likes = pd.DataFrame(likes_atualizados)
+        df_likes.columns = df_likes.columns.str.strip()
 
         ja_curtiu = (
             not df_likes[
@@ -159,5 +159,6 @@ with col1:
 
 with col2:
     if st.button("⏩ Pular"):
+        passados_ws.append_row([usuario, perfil["login"]])
         del st.session_state.perfil_atual
         st.rerun()
