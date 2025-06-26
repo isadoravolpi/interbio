@@ -5,14 +5,15 @@ import time
 import random
 from google.oauth2.service_account import Credentials
 
-scope = ["https://www.googleapis.com/auth/spreadsheets",
-         "https://www.googleapis.com/auth/drive"]
+scope = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
 
 creds_dict = st.secrets["gcp_service_account"]
 creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
 
 client = gspread.authorize(creds)
-client.login()  # opcional, reforça autenticação
 
 PLANILHA = "TINDER_CEO_PERFIS"
 
@@ -28,11 +29,10 @@ def carregar_sheet():
 
 sheet = carregar_sheet()
 
-# 🔒 Tentativa mais segura ao acessar aba 'perfis'
 try:
     perfis_ws = sheet.worksheet("perfis")
 except Exception as e:
-    st.error(f"Erro ao acessar a aba 'perfis': {e}")
+    st.error(f"Erro ao acessar aba 'perfis': {e}")
     st.stop()
 
 try:
