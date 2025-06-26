@@ -5,16 +5,20 @@ import time
 import random
 from google.oauth2.service_account import Credentials
 
-scope = ["https://www.googleapis.com/auth/spreadsheets",
-         "https://www.googleapis.com/auth/drive"]
+# --- CONFIGURAÇÕES DE ESCOPOS E CREDENCIAIS ---
+scope = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+]
 
 creds_dict = st.secrets["gcp_service_account"]
 creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
-
 client = gspread.authorize(creds)
 
+# --- NOME DA PLANILHA DO GOOGLE SHEETS ---
 PLANILHA = "TINDER_CEO_PERFIS"
 
+# --- FUNÇÃO PARA CONECTAR COM A PLANILHA ---
 @st.cache_data(ttl=60)
 def carregar_sheet():
     for tentativa in range(3):
@@ -28,12 +32,14 @@ def carregar_sheet():
 
 sheet = carregar_sheet()
 perfis_ws = sheet.worksheet("perfis")
+
 try:
     likes_ws = sheet.worksheet("likes")
 except gspread.exceptions.WorksheetNotFound:
     likes_ws = sheet.add_worksheet(title="likes", rows="1000", cols="5")
     likes_ws.append_row(["quem_curtiu", "quem_foi_curtido"])
 
+# --- FUNÇÃO PARA FORMATAR LINK DO DRIVE ---
 def drive_link_para_visualizacao(link):
     if "id=" in link:
         file_id = link.split("id=")[-1]
@@ -43,7 +49,8 @@ def drive_link_para_visualizacao(link):
         return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
     return link
 
-st.title("💘LIKES DA CEÓ")
+# --- INTERFACE DO USUÁRIO ---
+st.title("💖LIKES DA CEÓ")
 
 usuario = st.text_input("Digite seu login privado")
 if not usuario:
@@ -138,10 +145,9 @@ with col1:
             st.success("Curtida registrada com sucesso 💘")
 
         del st.session_state.perfil_atual
-        st.rerun()
+        st.experimental_rerun()
 
 with col2:
     if st.button("⏩ Pular"):
         del st.session_state.perfil_atual
-        st.rerun()
-
+        st.experimental_rerun()
