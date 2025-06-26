@@ -63,7 +63,7 @@ contato = st.text_input("WPP, Instagram...")
 descricao = st.text_area("3 palavras (ou mais) sobre você")
 musicas = st.text_area("Músicas que tocariam no seu set")
 fotos = st.file_uploader(
-    "Envie até 3 fotos, cada uma com no máximo 5 MB",
+    "Envie até 3 fotos, cada uma com no máximo 10 MB",
     type=["jpg", "jpeg", "png"],
     accept_multiple_files=True
 )
@@ -91,8 +91,8 @@ if st.button("Enviar"):
 
     for f in fotos:
         tamanho_mb = f.size / (1024 * 1024)
-        if tamanho_mb > 5:
-            st.warning(f"A foto {f.name} é muito grande ({tamanho_mb:.2f} MB). Máximo permitido: 5 MB.")
+        if tamanho_mb > 10:
+            st.warning(f"A foto {f.name} é muito grande ({tamanho_mb:.2f} MB). Máximo permitido: 10 MB.")
             st.stop()
 
     existentes = carregar_logins()
