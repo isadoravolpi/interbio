@@ -23,10 +23,15 @@ def carregar_sheet():
         try:
             return client.open(PLANILHA)
         except Exception as e:
+            if hasattr(e, "response") and hasattr(e.response, "status_code"):
+                if e.response.status_code == 429:
+                    st.warning("⏳ O sistema atingiu o limite de acessos por minuto. Aguarde alguns segundos e recarregue a página.")
+                    st.stop()
             if tentativa == 2:
                 st.error(f"Erro ao abrir planilha: {e}")
                 st.stop()
             time.sleep(1.5)
+
 
 sheet = carregar_sheet()
 
