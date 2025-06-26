@@ -71,7 +71,7 @@ fotos = st.file_uploader(
 # Pré-visualização
 if fotos:
     st.markdown("### Pré-visualização das fotos:")
-    cols = st.columns(3)
+    cols = st.columns(min(3, len(fotos)))
     for i, foto in enumerate(fotos):
         with cols[i % 3]:
             st.image(foto, use_container_width=True)
@@ -104,56 +104,35 @@ if st.button("Enviar"):
     links_fotos = []
 
     try:
-    for f, nome_arquivo in zip(fotos, nomes_fotos):
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
-            tmp.write(f.read())
-            tmp.flush()
+        for f, nome_arquivo in zip(fotos, nomes_fotos):
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+                tmp.write(f.read())
+                tmp.flush()
 
-            file_metadata = {
-                'name': nome_arquivo,
-                'parents': [PASTA_DRIVE_ID]
-            }
-            media = MediaFileUpload(tmp.name, mimetype='image/jpeg')
-            uploaded_file = drive_service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields='id'
-            ).execute()
+                file_metadata = {
+                    'name': nome_arquivo,
+                    'parents': [PASTA_DRIVE_ID]
+                }
+                media = MediaFileUpload(tmp.name, mimetype='image/jpeg')
+                uploaded_file = drive_service.files().create(
+                    body=file_metadata,
+                    media_body=media,
+                    fields='id'
+                ).execute()
 
-            # 🔓 Deixa a imagem pública
-            file_id = uploaded_file.get('id')
-            try:
-    drive_service.permissions().create(
-        fileId=file_id,
-        body={"role": "reader", "type": "anyone"},
-        fields="id"
-    ).execute()
-except Exception as e:
-    st.warning(f"Erro ao tornar imagem pública: {e}")
+                # 🔓 Deixa a imagem pública
+                file_id = uploaded_file.get('id')
+                try:
+                    drive_service.permissions().create(
+                        fileId=file_id,
+                        body={"role": "reader", "type": "anyone"},
+                        fields="id"
+                    ).execute()
+                except Exception as e:
+                    st.warning(f"Erro ao tornar imagem pública: {e}")
 
-            link = f"https://drive.google.com/uc?export=view&id={file_id}"
-            links_fotos.append(link)
-
-    nova_linha = [
-        login,
-        nome_publico,
-        contato,
-        descricao,
-        musicas,
-        ",".join(links_fotos)
-    ]
-    aba.append_row(nova_linha)
-    st.success("Cadastro enviado com sucesso! ✅")
-
-except (ssl.SSLEOFError, ssl.SSLError, socket.error, httplib2.SSLHandshakeError):
-    st.error("⚠️ Erro temporário de conexão segura (SSL). Recarregue a página e tente novamente.")
-    st.stop()
-
-except Exception as e:
-    st.error(f"Erro inesperado: {e}")
-    st.stop()
-
-
+                link = f"https://drive.google.com/uc?export=view&id={file_id}"
+                links_fotos.append(link)
 
         nova_linha = [
             login,
