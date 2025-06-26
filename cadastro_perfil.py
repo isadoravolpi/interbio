@@ -74,6 +74,14 @@ fotos = st.file_uploader(
     accept_multiple_files=True
 )
 
+if fotos:
+    st.markdown("### Pré-visualização das fotos:")
+    cols = st.columns(3)
+    for i, foto in enumerate(fotos):
+        with cols[i % 3]:
+            st.image(foto, use_column_width=True)
+
+
 if fotos and len(fotos) > 3:
     st.warning("Você pode enviar no máximo 3 fotos.")
     st.stop()
