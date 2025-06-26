@@ -173,17 +173,18 @@ fotos = perfil.get("fotos", "")
 if isinstance(fotos, str) and fotos.strip():
     lista_links = [link.strip() for link in fotos.split(",") if link.strip()]
     st.info("Fotos enviadas:")
-    cols = st.columns(3)
-    for i, link in enumerate(lista_links):
-        img_url = drive_link_para_visualizacao(link)
-        with cols[i % 3]:
-            st.markdown(
-    f'''
-    <img src="{img_url}" 
-         style="max-width: 100%; height: auto; border-radius: 10px; margin-bottom:10px; display: block; margin-left: auto; margin-right: auto;">
-    ''',
-    unsafe_allow_html=True
-)
+    cols = st.columns(min(3, len(lista_links)))
+for i, link in enumerate(lista_links):
+    img_url = drive_link_para_visualizacao(link)
+    with cols[i % len(cols)]:
+        st.markdown(
+            f'''
+            <img src="{img_url}" 
+                 style="max-width: 100%; height: auto; border-radius: 10px; margin-bottom:10px; display: block; margin-left: auto; margin-right: auto;">
+            ''',
+            unsafe_allow_html=True
+        )
+
 
 else:
     st.write("Sem fotos para mostrar.")
