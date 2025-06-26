@@ -4,6 +4,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 import tempfile
+import ssl  # importar para capturar erro SSL
 
 # Escopos
 scope = [
@@ -101,35 +102,44 @@ if st.button("Enviar"):
         st.error("Esse login já foi usado. Tente outro.")
         st.stop()
 
-    links_fotos = []
+    try:
+        links_fotos = []
 
-    for f, nome_arquivo in zip(fotos, nomes_fotos):
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
-            tmp.write(f.read())
-            tmp.flush()
+        for f, nome_arquivo in zip(fotos, nomes_fotos):
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+                tmp.write(f.read())
+                tmp.flush()
 
-            file_metadata = {
-                'name': nome_arquivo,
-                'parents': [PASTA_DRIVE_ID]
-            }
-            media = MediaFileUpload(tmp.name, mimetype='image/jpeg')
-            uploaded_file = drive_service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields='id'
-            ).execute()
-            file_id = uploaded_file.get('id')
-            link = f"https://drive.google.com/uc?export=view&id={file_id}"
-            links_fotos.append(link)
+                file_metadata = {
+                    'name': nome_arquivo,
+                    'parents': [PASTA_DRIVE_ID]
+                }
+                media = MediaFileUpload(tmp.name, mimetype='image/jpeg')
+                uploaded_file = drive_service.files().create(
+                    body=file_metadata,
+                    media_body=media,
+                    fields='id'
+                ).execute()
+                file_id = uploaded_file.get('id')
+                link = f"https://drive.google.com/uc?export=view&id={file_id}"
+                links_fotos.append(link)
 
-    nova_linha = [
-        login,
-        nome_publico,
-        contato,
-        descricao,
-        musicas,
-        ",".join(links_fotos)
-    ]
-    aba.append_row(nova_linha)
+        nova_linha = [
+            login,
+            nome_publico,
+            contato,
+            descricao,
+            musicas,
+            ",".join(links_fotos)
+        ]
+        aba.append_row(nova_linha)
 
-    st.success("Cadastro enviado com sucesso! ✅")
+        st.success("Cadastro enviado com sucesso! ✅")
+
+    except ssl.SSLEOFError:
+        st.error("⚠️ Problema temporário na conexão SSL. Por favor, recarregue a página e tente novamente.")
+        st.stop()
+
+    except Exception as e:
+        st.error(f"Erro inesperado: {e}")
+        st.stop()
