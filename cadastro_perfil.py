@@ -4,7 +4,9 @@ from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 import tempfile
-import ssl  # importar para capturar erro SSL
+import ssl
+import socket
+import httplib2  # para capturar SSLHandshakeError
 
 # Escopos
 scope = [
@@ -12,32 +14,25 @@ scope = [
     "https://www.googleapis.com/auth/drive"
 ]
 
-# Cache das credenciais
 @st.cache_resource
 def carregar_credenciais():
     creds_dict = st.secrets["gcp_service_account"]
     return ServiceAccountCredentials.from_json_keyfile_dict(dict(creds_dict), scope)
 
-# Cache do client do Google Sheets
 @st.cache_resource
 def conectar_google_sheets():
     creds = carregar_credenciais()
     return gspread.authorize(creds)
 
-# Cache do serviço do Google Drive
 @st.cache_resource
 def conectar_drive():
     creds = carregar_credenciais()
     return build('drive', 'v3', credentials=creds)
 
-# Inicializações com cache
 client = conectar_google_sheets()
 drive_service = conectar_drive()
 
-# ID da pasta para fotos no Drive
 PASTA_DRIVE_ID = "1HXgLg-DiC_kjjQ7UFqzwFLeeR_cqgdA3"
-
-# Nome da planilha
 PLANILHA = "TINDER_CEO_PERFIS"
 
 @st.cache_resource
@@ -55,7 +50,6 @@ def abrir_aba_perfis():
         aba.append_row(["login", "nome_publico", "contato", "descricao", "musicas", "fotos"])
     return aba
 
-# Carrega aba com cache
 aba = abrir_aba_perfis()
 
 # ------------------- INTERFACE ----------------------
@@ -74,19 +68,18 @@ fotos = st.file_uploader(
     accept_multiple_files=True
 )
 
+# Pré-visualização
 if fotos:
     st.markdown("### Pré-visualização das fotos:")
     cols = st.columns(3)
     for i, foto in enumerate(fotos):
         with cols[i % 3]:
-            st.image(foto, use_column_width=True)
-
+            st.image(foto, use_container_width=True)
 
 if fotos and len(fotos) > 3:
     st.warning("Você pode enviar no máximo 3 fotos.")
     st.stop()
 
-# Função para obter logins existentes com cache
 @st.cache_data(ttl=30)
 def carregar_logins():
     return aba.col_values(1)
@@ -96,23 +89,21 @@ if st.button("Enviar"):
         st.warning("Preencha todos os campos e envie pelo menos uma foto.")
         st.stop()
 
-    # Valida tamanho das fotos
     for f in fotos:
         tamanho_mb = f.size / (1024 * 1024)
         if tamanho_mb > 5:
             st.warning(f"A foto {f.name} é muito grande ({tamanho_mb:.2f} MB). Máximo permitido: 5 MB.")
             st.stop()
 
-    nomes_fotos = [f"{login}_{i+1}.jpg" for i in range(len(fotos))]
-
     existentes = carregar_logins()
     if login in existentes:
         st.error("Esse login já foi usado. Tente outro.")
         st.stop()
 
-    try:
-        links_fotos = []
+    nomes_fotos = [f"{login}_{i+1}.jpg" for i in range(len(fotos))]
+    links_fotos = []
 
+    try:
         for f, nome_arquivo in zip(fotos, nomes_fotos):
             with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
                 tmp.write(f.read())
@@ -141,11 +132,10 @@ if st.button("Enviar"):
             ",".join(links_fotos)
         ]
         aba.append_row(nova_linha)
-
         st.success("Cadastro enviado com sucesso! ✅")
 
-    except ssl.SSLEOFError:
-        st.error("⚠️ Problema temporário na conexão SSL. Por favor, recarregue a página e tente novamente.")
+    except (ssl.SSLEOFError, ssl.SSLError, socket.error, httplib2.SSLHandshakeError):
+        st.error("⚠️ Erro temporário de conexão segura (SSL). Recarregue a página e tente novamente.")
         st.stop()
 
     except Exception as e:
