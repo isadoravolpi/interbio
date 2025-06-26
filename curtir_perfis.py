@@ -31,13 +31,6 @@ def carregar_sheet():
 sheet = carregar_sheet()
 
 # Acessa abas
-try:
-    perfis_ws = sheet.worksheet("perfis")
-except Exception as e:
-    st.error(f"Erro ao abrir a aba 'perfis': {e}")
-    st.stop()
-
-# Abas likes e passados (sem cache no objeto gspread)
 def garantir_aba(nome, colunas):
     try:
         ws = sheet.worksheet(nome)
@@ -46,6 +39,7 @@ def garantir_aba(nome, colunas):
         ws.append_row(colunas)
     return ws
 
+perfis_ws = garantir_aba("perfis", ["login", "nome_publico", "descricao", "musicas", "fotos"])
 likes_ws = garantir_aba("likes", ["quem_curtiu", "quem_foi_curtido"])
 passados_ws = garantir_aba("passados", ["quem_passou", "quem_foi_passado"])
 
@@ -59,6 +53,42 @@ def drive_link_para_visualizacao(link):
         return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
     return link
 
+# Funções para carregar dados da planilha (sem cache)
+def carregar_perfis(ws):
+    return ws.get_all_values()
+
+def carregar_likes(ws):
+    return ws.get_all_records()
+
+def carregar_passados(ws):
+    return ws.get_all_records()
+
+# Funções para processar dados e aplicar cache
+@st.cache_data(ttl=15)
+def processar_perfis(valores):
+    if not valores:
+        return None
+    cabecalho, dados = valores[0], valores[1:]
+    df = pd.DataFrame(dados, columns=cabecalho).replace("", pd.NA).dropna(how="all")
+    df.columns = df.columns.str.strip()
+    return df
+
+@st.cache_data(ttl=15)
+def processar_likes(likes_data):
+    if not likes_data:
+        return pd.DataFrame(columns=["quem_curtiu", "quem_foi_curtido"])
+    df = pd.DataFrame(likes_data)
+    df.columns = df.columns.str.strip()
+    return df
+
+@st.cache_data(ttl=15)
+def processar_passados(passados_data):
+    if not passados_data:
+        return pd.DataFrame(columns=["quem_passou", "quem_foi_passado"])
+    df = pd.DataFrame(passados_data)
+    df.columns = df.columns.str.strip()
+    return df
+
 # App principal
 st.image("logo_besouro.png", width=400)
 st.title("💘 LIKES DA CEÓ")
@@ -69,18 +99,16 @@ if not usuario:
 # Dados dos perfis (session_state)
 if "valores_perfis" not in st.session_state:
     try:
-        st.session_state.valores_perfis = perfis_ws.get_all_values()
+        st.session_state.valores_perfis = carregar_perfis(perfis_ws)
     except Exception as e:
         st.error(f"Erro ao carregar perfis: {e}")
         st.stop()
 valores = st.session_state.valores_perfis
-if not valores:
+
+df = processar_perfis(valores)
+if df is None or df.empty:
     st.warning("Nenhum perfil cadastrado ainda.")
     st.stop()
-
-cabecalho, dados = valores[0], valores[1:]
-df = pd.DataFrame(dados, columns=cabecalho).replace("", pd.NA).dropna(how="all")
-df.columns = df.columns.str.strip()
 
 if "login" not in df.columns:
     st.error("A aba 'perfis' precisa da coluna 'login'.")
@@ -90,22 +118,20 @@ df = df[df["login"] != usuario]
 
 # Dados de likes e passados (session_state)
 if "likes_data" not in st.session_state:
-    likes_data = likes_ws.get_all_records()
+    likes_data = carregar_likes(likes_ws)
     st.session_state.likes_data = likes_data
 else:
     likes_data = st.session_state.likes_data
 
-likes = pd.DataFrame(likes_data) if likes_data else pd.DataFrame(columns=["quem_curtiu", "quem_foi_curtido"])
-likes.columns = likes.columns.str.strip()
+likes = processar_likes(likes_data)
 
 if "passados_data" not in st.session_state:
-    passados_data = passados_ws.get_all_records()
+    passados_data = carregar_passados(passados_ws)
     st.session_state.passados_data = passados_data
 else:
     passados_data = st.session_state.passados_data
 
-passados = pd.DataFrame(passados_data) if passados_data else pd.DataFrame(columns=["quem_passou", "quem_foi_passado"])
-passados.columns = passados.columns.str.strip()
+passados = processar_passados(passados_data)
 
 ja_curtiu = likes[likes["quem_curtiu"] == usuario]["quem_foi_curtido"].tolist()
 ja_passou = passados[passados["quem_passou"] == usuario]["quem_foi_passado"].tolist()
