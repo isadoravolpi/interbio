@@ -51,12 +51,13 @@ passados_ws = garantir_aba("passados", ["quem_passou", "quem_foi_passado"])
 # Função de link do drive
 def drive_link_para_visualizacao(link):
     if "id=" in link:
-        file_id = link.split("id=")[-1]
-        return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
-    elif "export=view&id=" in link:
-        file_id = link.split("id=")[-1]
-        return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
-    return link
+        file_id = link.split("id=")[-1].split("&")[0]
+    elif "file/d/" in link:
+        file_id = link.split("file/d/")[-1].split("/")[0]
+    else:
+        return link
+    return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
+
 
 # Funções para carregar dados da planilha (sem cache)
 def carregar_perfis(ws):
