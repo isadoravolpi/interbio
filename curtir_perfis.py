@@ -18,6 +18,7 @@ client = gspread.authorize(creds)
 PLANILHA = "TINDER_CEO_PERFIS"
 
 # Carrega planilha (sem cache)
+@st.cache_data(ttl=15)
 def carregar_sheet():
     for tentativa in range(3):
         try:
