@@ -60,6 +60,7 @@ def drive_link_para_visualizacao(link):
     return link
 
 # App principal
+st.image("logo_besouro.png", width=400)
 st.title("💘 LIKES DA CEÓ")
 usuario = st.text_input("Digite seu login privado")
 if not usuario:
