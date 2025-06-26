@@ -106,22 +106,31 @@ if st.button("Enviar"):
     try:
         for f, nome_arquivo in zip(fotos, nomes_fotos):
             with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
-                tmp.write(f.read())
-                tmp.flush()
+            tmp.write(f.read())
+            tmp.flush()
 
-                file_metadata = {
-                    'name': nome_arquivo,
-                    'parents': [PASTA_DRIVE_ID]
-                }
-                media = MediaFileUpload(tmp.name, mimetype='image/jpeg')
-                uploaded_file = drive_service.files().create(
-                    body=file_metadata,
-                    media_body=media,
-                    fields='id'
-                ).execute()
-                file_id = uploaded_file.get('id')
-                link = f"https://drive.google.com/uc?export=view&id={file_id}"
-                links_fotos.append(link)
+            file_metadata = {
+            'name': nome_arquivo,
+            'parents': [PASTA_DRIVE_ID]
+            }
+            media = MediaFileUpload(tmp.name, mimetype='image/jpeg')
+            uploaded_file = drive_service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+            ).execute()
+
+           # 🔓 Deixa a imagem pública
+            file_id = uploaded_file.get('id')
+            drive_service.permissions().create(
+            fileId=file_id,
+            body={"role": "reader", "type": "anyone"},
+            fields="id"
+            ).execute()
+
+            link = f"https://drive.google.com/uc?export=view&id={file_id}"
+            links_fotos.append(link)
+
 
         nova_linha = [
             login,
