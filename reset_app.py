@@ -26,7 +26,7 @@ if st.button("🔥 Apagar tudo e recomeçar do zero"):
                 st.stop()
             time.sleep(1.5)
 
-    abas = ["perfis", "likes", "matches"]
+    abas = ["perfis", "likes", "passados", "matches"]
 
     for aba_nome in abas:
         try:
