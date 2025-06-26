@@ -133,7 +133,12 @@ col1, col2 = st.columns(2)
 with col1:
     if st.button("💖 Curtir"):
         likes_atualizados = likes_ws.get_all_records()
-        df_likes = pd.DataFrame(likes_atualizados)
+        
+        if likes_atualizados:
+            df_likes = pd.DataFrame(likes_atualizados)
+        else:
+            df_likes = pd.DataFrame(columns=["quem_curtiu", "quem_foi_curtido"])
+
         df_likes.columns = [str(col).strip() for col in df_likes.columns]
 
         ja_curtiu = (
