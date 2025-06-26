@@ -1,8 +1,9 @@
 pydrive
 streamlit>=1.25.0
 pandas>=1.5.3
-gspread>=5.7.2
-google-auth>=2.20.0
-google-auth-oauthlib>=0.8.0
-google-auth-httplib2>=0.1.0
+gspread==5.7.2
+google-auth==2.19.1
+google-auth-oauthlib==0.5.3
+google-auth-httplib2==0.1.0
 requests>=2.31.0
+
