@@ -5,42 +5,45 @@ import time
 import random
 from google.oauth2.service_account import Credentials
 
-scope = [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive"
-]
+# Autenticação Google
+scope = ["https://www.googleapis.com/auth/spreadsheets",
+         "https://www.googleapis.com/auth/drive"]
 
 creds_dict = st.secrets["gcp_service_account"]
 creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
-
 client = gspread.authorize(creds)
 
+# Nome da planilha
 PLANILHA = "TINDER_CEO_PERFIS"
 
+# Não usar cache, para evitar erro de reconexão
 def carregar_sheet():
     for tentativa in range(3):
         try:
             return client.open(PLANILHA)
-        except gspread.exceptions.APIError as e:
+        except gspread.exceptions.APIError:
             if tentativa == 2:
-                st.error(f"Erro ao conectar com o Google Sheets: {e}")
+                st.error("Erro ao conectar com o Google Sheets. Tente novamente em instantes.")
                 st.stop()
             time.sleep(1.5)
 
 sheet = carregar_sheet()
 
+# Acessa aba "perfis"
 try:
     perfis_ws = sheet.worksheet("perfis")
 except Exception as e:
     st.error(f"Erro ao acessar aba 'perfis': {e}")
     st.stop()
 
+# Acessa ou cria aba "likes"
 try:
     likes_ws = sheet.worksheet("likes")
 except gspread.exceptions.WorksheetNotFound:
     likes_ws = sheet.add_worksheet(title="likes", rows="1000", cols="5")
     likes_ws.append_row(["quem_curtiu", "quem_foi_curtido"])
 
+# Converte link Drive para thumbnail
 def drive_link_para_visualizacao(link):
     if "id=" in link:
         file_id = link.split("id=")[-1]
@@ -50,6 +53,7 @@ def drive_link_para_visualizacao(link):
         return f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
     return link
 
+# App
 st.title("💘LIKES DA CEÓ")
 
 usuario = st.text_input("Digite seu login privado")
@@ -72,9 +76,10 @@ if "login" not in df.columns:
 
 df = df[df["login"] != usuario]
 
+# Carrega curtidas
 likes_data = likes_ws.get_all_records()
 likes = pd.DataFrame(likes_data) if likes_data else pd.DataFrame(columns=["quem_curtiu", "quem_foi_curtido"])
-likes.columns = likes.columns.str.strip()
+likes.columns = [str(col).strip() for col in likes.columns]
 
 if not set(["quem_curtiu", "quem_foi_curtido"]).issubset(likes.columns):
     st.error("A aba 'likes' precisa das colunas 'quem_curtiu' e 'quem_foi_curtido'.")
@@ -129,7 +134,7 @@ with col1:
     if st.button("💖 Curtir"):
         likes_atualizados = likes_ws.get_all_records()
         df_likes = pd.DataFrame(likes_atualizados)
-        df_likes.columns = df_likes.columns.str.strip()
+        df_likes.columns = [str(col).strip() for col in df_likes.columns]
 
         ja_curtiu = (
             not df_likes[
